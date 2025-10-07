@@ -8,7 +8,7 @@ function get_rates($base='BRL') {
             return $data['rates'];
         }
     }
-    $url = "https://api.exchangerate.host/latest?base=" . urlencode($base);
+    $url = "https://api.frankfurter.app/latest?from=" . urlencode($base);
     $ch = curl_init(); curl_setopt($ch, CURLOPT_URL, $url); curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     $res = curl_exec($ch); curl_close($ch);
     $json = json_decode($res, true);
@@ -35,6 +35,6 @@ function convert_amount($amount, $from, $to='BRL') {
     if(isset($rates2[$from])) {
         return round($amount / $rates2[$from],2);
     }
-    return round($amount,2);
+    return null;
 }
 ?>

@@ -6,11 +6,12 @@ if(!isset($_GET['from'], $_GET['to'], $_GET['amount'])){
 }
 $from = strtoupper($_GET['from']); $to = strtoupper($_GET['to']); $amount = floatval($_GET['amount']);
 $rates = get_rates($from);
-$result = null;
-if(isset($rates[$to])){
-    $result = $amount * $rates[$to];
-} else {
-    $result = convert_amount($amount, $from, $to);
+$result = convert_amount($amount, $from, $to);
+if ($result === null) {
+    http_response_code(500);
+    echo json_encode(['error'=>'Could not convert currencies. Check internet connection or currency codes.']);
+    exit;
 }
+
 echo json_encode(['result'=>round($result,2),'from'=>$from,'to'=>$to]);
 ?>

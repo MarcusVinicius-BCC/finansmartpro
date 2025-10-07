@@ -16,7 +16,7 @@
   --secondary-color: #6c757d;
   --accent-color: #17a2b8;
   --card-bg: hsla(223, 86%, 46%, 0.792);
-  --card-shadow: rgba(142, 91, 252, 0.581);
+  --card-shadow: rgb(55, 4, 164);
   --text-color: #9ca3af;
   --text-muted: #9ca3af;
   --card-border-color: rgba(255, 255, 255, 0.1);
@@ -140,7 +140,7 @@ body {
 }
 
 .navbar-brand .brand-mark {
-  background-color: hwb(255 16% 53% / 0.678);
+  background-color: hwb(255 0% 0% / 0.678);
   color: var(--primary-color);
   padding: 4px 8px;
   border-radius: 6px;

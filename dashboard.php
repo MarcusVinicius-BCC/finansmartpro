@@ -67,12 +67,27 @@ require 'includes/header.php';
     <div class="col-12 col-lg-5">
       <div class="card p-3">
         <h5>Converter</h5>
+        <?php
+          $currencies = ['BRL', 'USD', 'EUR']; // Centralized currency list
+        ?>
         <form id="convForm">
           <div class="row g-2">
             <div class="col-5"><input id="conv_amount" class="form-control" type="number" value="100"></div>
-            <div class="col-3"><select id="conv_from" class="form-select"><option>BRL</option><option>USD</option><option>EUR</option></select></div>
-            <div class="col-3"><select id="conv_to" class="form-select"><option><?= htmlspecialchars($base) ?></option><option>BRL</option><option>USD</option></select></div>
-            <div class="col-1"><button class="btn btn-primary">OK</button></div>
+            <div class="col-3">
+              <select id="conv_from" class="form-select">
+                <?php foreach($currencies as $c): ?>
+                  <option value="<?= $c ?>" <?= ($c == 'BRL') ? 'selected' : '' ?>><?= $c ?></option>
+                <?php endforeach; ?>
+              </select>
+            </div>
+            <div class="col-3">
+              <select id="conv_to" class="form-select">
+                <?php foreach($currencies as $c): ?>
+                  <option value="<?= $c ?>" <?= ($c == $base) ? 'selected' : '' ?>><?= $c ?></option>
+                <?php endforeach; ?>
+              </select>
+            </div>
+            <div class="col-1"><button id="conv_submit" class="btn btn-primary">OK</button></div>
           </div>
         </form>
         <div id="convResult" class="mt-2"></div>
@@ -82,19 +97,46 @@ require 'includes/header.php';
 </div>
 
 <script>
-document.getElementById('convForm').addEventListener('submit', async function(e){
+const convForm = document.getElementById('convForm');
+const fromSelect = document.getElementById('conv_from');
+const toSelect = document.getElementById('conv_to');
+const submitBtn = document.getElementById('conv_submit');
+const resultDiv = document.getElementById('convResult');
+
+function validateConversion() {
+  if (fromSelect.value === toSelect.value) {
+    submitBtn.disabled = true;
+    resultDiv.innerText = 'Selecione moedas diferentes.';
+  } else {
+    submitBtn.disabled = false;
+    resultDiv.innerText = '';
+  }
+}
+
+fromSelect.addEventListener('change', validateConversion);
+toSelect.addEventListener('change', validateConversion);
+
+convForm.addEventListener('submit', async function(e){
   e.preventDefault();
   const amount = document.getElementById('conv_amount').value;
-  const from = document.getElementById('conv_from').value;
-  const to = document.getElementById('conv_to').value;
-  const res = await fetch(`/finansmart_pro/api/conversao.php?from=${from}&to=${to}&amount=${amount}`);
+  const from = fromSelect.value;
+  const to = toSelect.value;
+
+  resultDiv.innerText = 'Convertendo...';
+
+  const res = await fetch(`/finansmart/api/conversao.php?from=${from}&to=${to}&amount=${amount}`);
   const json = await res.json();
-  if(json && json.result) {
-    document.getElementById('convResult').innerHTML = `<strong>${json.result}</strong>`;
+  
+  if(res.ok && json.result) {
+    resultDiv.innerHTML = `<strong>${json.result} ${to}</strong>`;
   } else {
-    document.getElementById('convResult').innerText = 'Erro ao converter.';
+    const errorMsg = json.error || 'Erro ao converter. Verifique a conexão.';
+    resultDiv.innerText = errorMsg;
   }
 });
+
+// Initial validation check on page load
+validateConversion();
 </script>
 
 <?php require 'includes/footer.php'; ?>
