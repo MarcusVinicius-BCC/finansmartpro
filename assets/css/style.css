@@ -1,0 +1,193 @@
+:root {
+  --bg-color: #f8f9fa;
+  --primary-color: #007bff;
+  --secondary-color: #6c757d;
+  --accent-color: #17a2b8;
+  --card-bg: #007bff;
+  --card-shadow: rgb(55, 4, 164);
+  --text-color: #212529;
+  --text-muted: #6c757d;
+  --card-border-color: rgba(1, 3, 0, 0.959);
+}
+
+[data-theme='dark'] {
+  --bg-color: #080811;
+  --primary-color: #0d6efd;
+  --secondary-color: #6c757d;
+  --accent-color: #17a2b8;
+  --card-bg: hsla(223, 86%, 46%, 0.792);
+  --card-shadow: rgba(142, 91, 252, 0.581);
+  --text-color: #9ca3af;
+  --text-muted: #9ca3af;
+  --card-border-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme='dark'] .card {
+  color: #9ca3af;
+}
+
+body {
+  background-color: var(--bg-color);
+  color: var(--text-color);
+}
+
+.card {
+  background-color: var(--card-bg);
+  box-shadow: 0 4px 12px var(--card-shadow);
+  border: 1px solid var(--card-border-color);
+  border-radius: 12px;
+  padding: 20px;
+  transition: all 0.2s ease-in-out;
+}
+
+.card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 20px var(--card-shadow);
+}
+
+.section {
+  background-color: var(--card-bg);
+  padding: 60px 0;
+}
+
+.navbar.bg-gradient {
+  background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
+}
+
+.brand-mark {
+  display: inline-block;
+  width: 36px;
+  height: 36px;
+  background: var(--accent-2);
+  border-radius: 8px;
+  color: #fff;
+  text-align: center;
+  line-height: 36px;
+  font-weight: 700;
+}
+
+/*.bg-hero { 
+  background: linear-gradient(180deg, rgba(0,123,255,0.9), rgba(47, 0, 255, 0.352)); 
+}
+
+.bg-hero-2 { 
+  background: linear-gradient(180deg, rgba(23,162,184,0.9), rgba(26, 24, 179, 0.385)); 
+}*/
+
+
+
+
+.feature {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-muted);
+}
+
+.feature i {
+  color: var(--accent-color);
+  background: rgba(23, 162, 184, 0.12);
+  padding: 8px;
+  border-radius: 8px;
+}
+
+.btn-primary {
+  background-color: var(--primary-color);
+  color: #fff;
+  border: none;
+}
+
+.btn-primary:hover {
+  background-color: #0056b3;
+}
+
+.btn-outline-primary {
+  color: var(--primary-color);
+  border-color: var(--primary-color);
+}
+
+.btn-outline-primary:hover {
+  background-color: var(--primary-color);
+  color: #fff;
+}
+
+.btn-secondary {
+  background-color: var(--secondary-color);
+  color: #fff;
+}
+
+.btn-secondary:hover {
+  background-color: #5a6268;
+}
+
+.table-hover tbody tr:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+[data-theme='dark'] .table-hover tbody tr:hover {
+  background: rgba(255, 5, 5, 0.05);
+}
+
+.navbar-brand {
+  font-size: 1.4rem;
+  font-weight: 700;
+  text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.2);
+  color: rgb(18, 126, 162);
+}
+
+.navbar-brand:hover {
+  color: #7f1ab9a4;
+}
+
+.navbar-brand .brand-mark {
+  background-color: hwb(255 16% 53% / 0.678);
+  color: var(--primary-color);
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-weight: 900;
+}
+
+#themeToggle {
+  background-color: rgba(44, 17, 140, 0.607);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: #ffffff;
+}
+
+#themeToggle:hover {
+  background-color: rgba(64, 151, 238, 0.848);
+}
+
+.d-grid .btn-primary {
+  background-color: blue;
+}
+
+.card a {
+  color: #ffffff;
+}
+
+.d-grid .btn-primary:hover {
+  background-color: darkblue;
+}
+
+.text-white-50 {
+  color: #ffffff !important;
+}
+
+.text-white-50:hover {
+  color: #ffffff !important;
+  text-decoration: underline;
+}
+
+.login-title {
+  color: #ffffff !important;
+}
+
+.card h4,
+.card h5 {
+  color: #ffffff;
+}
+
+[data-theme='dark'] .card h4,
+[data-theme='dark'] .card h5 {
+  color: #e6eef8;
+}
