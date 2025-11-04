@@ -222,7 +222,7 @@ CREATE TABLE `metas` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
-
+ADD COLUMN moeda VARCHAR(10) NOT NULL DEFAULT 'BRL' AFTER status;
 --
 -- Estrutura para tabela `metas_financeiras`
 --
