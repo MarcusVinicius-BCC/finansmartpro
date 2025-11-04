@@ -25,24 +25,44 @@ if($_SERVER['REQUEST_METHOD'] === 'POST'){
 }
 require 'includes/header.php';
 ?>
-<div class="container d-flex justify-content-center align-items-center" style="min-height:70vh;">
-  <div class="card shadow-sm p-4" style="max-width:640px;width:100%;border-radius:12px;">
-    <div class="row g-0">
-      <div class="col-md-6 p-3">
-        <h4>Criar Conta</h4>
-        <?php if($errors): ?><div class="alert alert-danger"><?php echo implode('<br>', $errors); ?></div><?php endif; ?>
-        <form method="post" novalidate>
-          <div class="mb-2"><input type="text" name="nome" class="form-control" placeholder="Nome completo" required></div>
-          <div class="mb-2"><input type="email" name="email" class="form-control" placeholder="Email" required></div>
-          <div class="row g-2"><div class="col-md-6"><input type="password" name="senha" class="form-control" placeholder="Senha" required></div><div class="col-md-6"><input type="password" name="senha2" class="form-control" placeholder="Confirmar senha" required></div></div>
-          <div class="d-grid mt-3"><button class="btn btn-success">Criar Conta</button></div>
-        </form>
-      </div>
-      <div class="col-md-6 d-none d-md-block bg-hero-2 p-3 rounded-end">
-        <h5 class="text-white">Comece grátis</h5>
-        <p class="text-white-50">Teste por 30 dias sem custo.</p>
-      </div>
+<div class="container auth-page">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow-sm auth-card">
+                <div class="card-body p-5">
+                    <h3 class="card-title text-center mb-4 auth-title">Criar Conta</h3>
+                    <?php if($errors): ?>
+                        <div class="alert alert-danger">
+                            <?php echo implode('<br>', $errors); ?>
+                        </div>
+                    <?php endif; ?>
+                    <form method="post" novalidate>
+                        <div class="mb-3">
+                            <label for="nome" class="form-label">Nome completo</label>
+                            <input type="text" name="nome" id="nome" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="email" class="form-label">E-mail</label>
+                            <input type="email" name="email" id="email" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="senha" class="form-label">Senha</label>
+                            <input type="password" name="senha" id="senha" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="senha2" class="form-label">Confirmar Senha</label>
+                            <input type="password" name="senha2" id="senha2" class="form-control" required>
+                        </div>
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary">Criar Conta</button>
+                        </div>
+                    </form>
+                    <div class="mt-3 text-center">
+                        <p>Já tem uma conta? <a href="login.php">Faça login</a></p>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
-  </div>
 </div>
 <?php require 'includes/footer.php'; ?>

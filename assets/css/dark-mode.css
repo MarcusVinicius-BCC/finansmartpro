@@ -1,0 +1,267 @@
+/* Variáveis CSS para temas */
+:root {
+    --bg-color: #ffffff;
+    --text-color: #333333;
+    --card-bg: #ffffff;
+    --card-border: rgba(0, 0, 0, 0.125);
+    --navbar-bg: #0d6efd;
+    --input-bg: #ffffff;
+    --input-text: #333333;
+    --input-border: #ced4da;
+}
+
+[data-theme="dark"] {
+    --bg-color: #1a1d21;
+    --text-color: #e4e6eb;
+    --card-bg: #242526;
+    --card-border: #2d2f31;
+    --navbar-bg: #242526;
+    --input-bg: #3a3b3c;
+    --input-text: #e4e6eb;
+    --input-border: #4a4b4c;
+}
+
+/* Aplicação dos estilos */
+body {
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    transition: all 0.3s ease;
+}
+
+.navbar:not(.navbar-transparent) {
+    background-color: var(--navbar-bg) !important;
+}
+
+.card {
+    background-color: var(--card-bg);
+    border-color: var(--card-border);
+}
+
+.form-control {
+    background-color: var(--input-bg);
+    border-color: var(--input-border);
+    color: var(--input-text);
+}
+
+.form-control:focus {
+    background-color: var(--input-bg);
+    color: var(--input-text);
+}
+
+/* Dark mode específico para elementos */
+[data-theme="dark"] .btn-outline-primary {
+    color: #e4e6eb;
+    border-color: #0d6efd;
+}
+
+[data-theme="dark"] .dropdown-menu {
+    background-color: #242526;
+    border-color: #2d2f31;
+}
+
+[data-theme="dark"] .dropdown-item {
+    color: #e4e6eb;
+}
+
+[data-theme="dark"] .dropdown-item:hover {
+    background-color: #3a3b3c;
+}
+
+[data-theme="dark"] .alert-danger {
+    background-color: #350d0d;
+    border-color: #842029;
+    color: #ea868f;
+}
+
+[data-theme="dark"] .table {
+    color: #e4e6eb;
+}
+
+[data-theme="dark"] .modal-content {
+    background-color: #242526;
+    border-color: #2d2f31;
+}
+
+/* Transições suaves */
+.card,
+.form-control,
+.btn,
+.navbar,
+.dropdown-menu,
+.modal-content {
+    transition: all 0.3s ease;
+}
+
+/* Ajustes para elementos específicos no modo escuro */
+[data-theme="dark"] select option {
+    background-color: #3a3b3c;
+    color: #e4e6eb;
+}
+
+[data-theme="dark"] input::placeholder {
+    color: #8a8d91;
+}
+
+[data-theme="dark"] .text-muted {
+    color: #8a8d91 !important;
+}
+
+body {
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    transition: background-color 0.3s, color 0.3s;
+}
+
+/* Estilos específicos para páginas de login e registro */
+[data-theme="dark"] .auth-container {
+    background-color: #242526;
+    border-color: #2d2f31;
+}
+
+[data-theme="dark"] .auth-title {
+    color: #e4e6eb;
+}
+
+[data-theme="dark"] .auth-subtitle {
+    color: #b0b3b8;
+}
+
+[data-theme="dark"] .form-label {
+    color: #e4e6eb;
+}
+
+[data-theme="dark"] .form-text {
+    color: #b0b3b8;
+}
+
+[data-theme="dark"] .alert {
+    background-color: #3a3b3c;
+    border-color: #2d2f31;
+    color: #e4e6eb;
+}
+
+[data-theme="dark"] .alert-danger {
+    background-color: #350d0d;
+    border-color: #842029;
+    color: #ea868f;
+}
+
+[data-theme="dark"] .alert-success {
+    background-color: #0d231a;
+    border-color: #146c43;
+    color: #75b798;
+}
+
+[data-theme="dark"] .card.auth-card {
+    background-color: #242526;
+    border-color: #2d2f31;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Links nas páginas de autenticação */
+[data-theme="dark"] .auth-card a {
+    color: #4e89e8;
+}
+
+[data-theme="dark"] .auth-card a:hover {
+    color: #699ef5;
+    text-decoration: none;
+}
+
+/* Placeholder dos inputs */
+[data-theme="dark"] .form-control::placeholder {
+    color: #8a8d91;
+}
+
+/* Transições suaves */
+[data-theme="dark"] .auth-card,
+[data-theme="dark"] .form-control,
+[data-theme="dark"] .btn {
+    transition: all 0.3s ease;
+}
+
+/* Melhorias nos inputs */
+[data-theme="dark"] .form-control:focus {
+    border-color: #4e89e8;
+    box-shadow: 0 0 0 0.25rem rgba(78, 137, 232, 0.25);
+}
+
+/* Botão primário no modo escuro */
+[data-theme="dark"] .btn-primary {
+    background-color: #4e89e8;
+    border-color: #4e89e8;
+}
+
+[data-theme="dark"] .btn-primary:hover {
+    background-color: #3b7de0;
+    border-color: #3b7de0;
+}
+
+/* Textos informativos */
+[data-theme="dark"] .mt-3.text-center p {
+    color: #b0b3b8;
+}
+
+[data-theme="dark"] .navbar {
+    background-color: #242526 !important;
+}
+
+[data-theme="dark"] .card {
+    background-color: #242526;
+    border-color: #2d2f31;
+}
+
+[data-theme="dark"] .card-text {
+    color: #e4e6eb !important;
+}
+
+[data-theme="dark"] .card-title {
+    color: #e4e6eb;
+}
+
+[data-theme="dark"] .lead {
+    color: #e4e6eb;
+}
+
+[data-theme="dark"] .chart-container {
+    background-color: #242526;
+}
+
+[data-theme="dark"] .chart-title {
+    color: #e4e6eb;
+}
+
+[data-theme="dark"] .form-control {
+    background-color: #3a3b3c;
+    border-color: #2d2f31;
+    color: #e4e6eb;
+}
+
+[data-theme="dark"] .form-control:focus {
+    background-color: #3a3b3c;
+    color: #e4e6eb;
+}
+
+[data-theme="dark"] select.form-control option {
+    background-color: #242526;
+    color: #e4e6eb;
+}
+
+[data-theme="dark"] .card-header {
+    background-color: #2d2f31;
+    border-bottom-color: #393a3b;
+    color: #e4e6eb;
+}
+
+[data-theme="dark"] .health-score-container {
+    background: linear-gradient(135deg, #4b1b74 0%, #1e1a5a 100%);
+}
+
+[data-theme="dark"] .btn-outline-primary {
+    color: #e4e6eb;
+    border-color: #0d6efd;
+}
+
+[data-theme="dark"] .display-4 {
+    color: #e4e6eb;
+}

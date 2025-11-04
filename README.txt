@@ -1,4 +1,4 @@
-FinanSmart Pro - Versão completa
+FinanSmart Pro 
 
 Autor: Marcus Vinicius Campos da Silva
 Ano: 2025
@@ -36,3 +36,5 @@ Criar a pasta cache: Você precisa criar uma pasta chamada cache na raiz do seu 
 É necessário que o servidor tenha acesso à internet para que a consulta das taxas de câmbio funcione.
 Resumindo: instale o XAMPP, inicie o Apache e o MySQL, crie o banco finansmart, importe o database.sql, crie a pasta cache e, se necessário, ajuste a senha do banco no arquivo includes/db.php.
 
+usuário cadastrado: admin@gmail.com
+senha cadastrada: 123456
