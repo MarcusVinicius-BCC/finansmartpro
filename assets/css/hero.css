@@ -1,0 +1,146 @@
+/* Estilos para o hero section da página inicial */
+.hero-section {
+    display: none !important;
+    min-height: 85vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: -1.5rem -0.75rem 2rem;
+    padding: 4rem 2rem;
+    position: relative;
+    overflow: hidden;
+    color: white;
+    opacity: 1;
+    transition: opacity 0.3s ease-out;
+    will-change: opacity;
+}
+
+.hero-section::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: url('data:image/svg+xml,<svg width="20" height="20" xmlns="http://www.w3.org/2000/svg"><path d="M0 0h20v20H0z" fill="none"/><path d="M10 0l10 10-10 10L0 10z" fill="rgba(255,255,255,0.05)"/></svg>') repeat;
+    opacity: 0.1;
+}
+
+.hero-section .hero-logo {
+    width: 500px;
+    height: auto;
+    margin-bottom: 0.5rem;
+    filter: drop-shadow(2px 2px 4px rgba(0, 0, 0, 0.1));
+}
+
+.hero-section .display-4 {
+    font-size: 3.5rem;
+    margin-bottom: 1.5rem;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.hero-section .lead {
+    font-size: 1.25rem;
+    margin-bottom: 2rem;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+    opacity: 0.9;
+}
+
+.hero-section .btn {
+    padding: 0.8rem 2rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.hero-section .btn-outline-light {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(5px);
+    border-color: #fff;
+    color: #fff;
+    transition: all 0.3s ease;
+}
+
+.hero-section .btn-outline-light:hover {
+    background: #5100ffcb;
+    border-color: hsl(0, 0%, 0%);
+    color: #000;
+}
+
+[data-theme="dark"] .hero-section .btn-outline-light {
+    background: rgba(0, 0, 0, 0.2);
+    border-color: var(--dark-color);
+    color: var(--dark-color);
+}
+
+[data-theme="dark"] .hero-section .btn-outline-light:hover {
+    background: rgba(0, 0, 0, 0.3);
+    color: var(--light-color);
+    border-color: var(--dark-color);
+}
+
+.features-section {
+    padding: 5rem 0;
+    opacity: 1;
+    transition: opacity 0.3s ease-out;
+    will-change: opacity;
+    color: white;
+}
+
+[data-theme="dark"] .features-section {
+    background: linear-gradient(135deg, #4a00e0 0%, #8e2de2 100%);
+}
+
+.feature-card {
+    transition: transform 0.3s ease;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.1) !important;
+    backdrop-filter: blur(5px);
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+}
+
+.feature-card:hover {
+    transform: translateY(-10px);
+    background: rgba(255, 255, 255, 0.15) !important;
+}
+
+.feature-card .card-title {
+    color: white !important;
+}
+
+.feature-card .card-text {
+    color: rgba(255, 255, 255, 0.9) !important;
+}
+
+.feature-icon {
+    width: 80px;
+    height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1.5rem;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.15);
+    color: white;
+}
+
+.feature-icon i {
+    color: white !important;
+}
+
+@media (max-width: 768px) {
+    .hero-section {
+        min-height: 70vh;
+        padding: 3rem 1rem;
+    }
+
+    .hero-section .display-4 {
+        font-size: 2.5rem;
+    }
+
+    .hero-section .lead {
+        font-size: 1.1rem;
+    }
+}

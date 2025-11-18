@@ -1,0 +1,84 @@
+/* Estilos específicos para páginas de autenticação */
+.auth-page {
+    min-height: 100vh;
+    padding-top: 80px;
+}
+
+[data-theme="dark"] .auth-page {
+    background: linear-gradient(135deg, #1a1d21 0%, #242526 100%);
+}
+
+.auth-card {
+    border: none;
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="dark"] .auth-card {
+    background: #2d2f31;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+.auth-title {
+    font-size: 1.75rem;
+    font-weight: 600;
+    margin-bottom: 2rem;
+    color: #2d3748;
+}
+
+[data-theme="dark"] .auth-title {
+    color: #e4e6eb;
+}
+
+.auth-card .form-label {
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+}
+
+.auth-card .form-control {
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+}
+
+[data-theme="dark"] .auth-card .form-control {
+    background: #3a3b3c;
+    border-color: #4a4b4c;
+    color: #e4e6eb;
+}
+
+.auth-card .btn-primary {
+    padding: 0.75rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.auth-card .alert {
+    border-radius: 8px;
+    padding: 1rem;
+}
+
+.auth-links {
+    margin-top: 1.5rem;
+    text-align: center;
+    color: #718096;
+}
+
+[data-theme="dark"] .auth-links {
+    color: #a0aec0;
+}
+
+.auth-links a {
+    color: #4299e1;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+[data-theme="dark"] .auth-links a {
+    color: #63b3ed;
+}
+
+.auth-links a:hover {
+    text-decoration: underline;
+}

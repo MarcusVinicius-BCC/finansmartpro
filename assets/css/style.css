@@ -1,0 +1,95 @@
+:root {
+    --primary-color: #6a0dad; /* Roxo */
+    --secondary-color: #6c757d; /* Gray */
+    --accent-color: #17a2b8; /* Teal */
+    --success-color: #28a745; /* Green */
+    --danger-color: #005effd5; /* Red */
+}
+
+body {
+    font-family: 'Roboto', sans-serif;
+    background-color: #6a0dad;
+    color: #333; /* Default text color for light mode */
+}
+
+body, .wrapper {
+    background-color: #6a0dad;
+}
+
+.card {
+    border: none;
+    border-radius: 12px; /* Cantos arredondados */
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.08); /* Sombra mais suave */
+    transition: all .3s ease-in-out;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0, 82, 155, 0.2); /* Sombra com tom da cor primária */
+}
+
+.btn-primary {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.btn-primary:hover {
+    background-color: #003d73; /* Azul mais escuro */
+    border-color: #003d73;
+}
+
+.btn-secondary {
+    background-color: var(--secondary-color);
+    border-color: var(--secondary-color);
+    color: #fff;
+}
+
+.btn-secondary:hover {
+    background-color: #5a6268; /* Cinza mais escuro */
+    border-color: #5a6268;
+    color: #fff;
+}
+
+.btn-accent {
+    background-color: var(--accent-color);
+    border-color: var(--accent-color);
+    color: #fff;
+}
+
+.btn-accent:hover {
+    background-color: #138496; /* Teal mais escuro */
+    border-color: #138496;
+    color: #fff;
+}
+
+.text-primary {
+    color: var(--primary-color) !important;
+}
+
+.text-secondary {
+    color: var(--secondary-color) !important;
+}
+
+.text-accent {
+    color: var(--accent-color) !important;
+}
+
+.bg-primary {
+    background-color: var(--primary-color) !important;
+}
+
+.bg-secondary {
+    background-color: var(--secondary-color) !important;
+}
+
+.bg-accent {
+    background-color: var(--accent-color) !important;
+}
+
+.bg-success {
+    background-color: var(--success-color) !important;
+}
+
+.bg-danger {
+    background-color: var(--danger-color) !important;
+}
