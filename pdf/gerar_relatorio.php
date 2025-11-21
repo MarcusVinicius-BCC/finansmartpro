@@ -10,8 +10,8 @@ class PDF extends FPDF
 {
     function Header()
     {
-        $this->SetFont('Arial','B',12);
-        $this->Cell(0,10,'Relatório Financeiro',0,1,'C');
+        $this->SetFont('Arial','B',14);
+        $this->Cell(0,10,utf8_decode('Relatório Financeiro'),0,1,'C');
         $this->Ln(5);
     }
 
@@ -19,22 +19,22 @@ class PDF extends FPDF
     {
         $this->SetY(-15);
         $this->SetFont('Arial','I',8);
-        $this->Cell(0,10,'Página '.$this->PageNo().'/{nb}',0,0,'C');
+        $this->Cell(0,10,utf8_decode('Página ').$this->PageNo().'/{nb}',0,0,'C');
     }
 }
 
 $pdf = new PDF();
 $pdf->AliasNbPages();
 $pdf->AddPage();
-$pdf->SetFont('Arial','',12);
+$pdf->SetFont('Arial','',11);
 
 $stmt = $pdo->prepare('SELECT nome FROM usuarios WHERE id = ?'); 
 $stmt->execute([$user_id]); 
 $user = $stmt->fetch();
 
-$pdf->Cell(0,10,'Usuário: '.($user['nome']??''),0,1);
-$pdf->Cell(0,10,'Data: '.date('d/m/Y'),0,1);
-$pdf->Ln(10);
+$pdf->Cell(0,8,utf8_decode('Usuário: '.($user['nome']??'')),0,1);
+$pdf->Cell(0,8,'Data: '.date('d/m/Y'),0,1);
+$pdf->Ln(5);
 
 $sql = 'SELECT l.*, c.nome as categoria_nome FROM lancamentos l LEFT JOIN categorias c ON l.id_categoria = c.id WHERE l.id_usuario = ?';
 $params = [$user_id];
@@ -65,21 +65,56 @@ $stmt = $pdo->prepare($sql);
 $stmt->execute($params);
 $lancamentos = $stmt->fetchAll();
 
-$pdf->SetFont('Arial','B',12);
-$pdf->Cell(30,10,'Data',1,0,'C');
-$pdf->Cell(80,10,'Descrição',1,0,'C');
-$pdf->Cell(40,10,'Categoria',1,0,'C');
-$pdf->Cell(40,10,'Valor',1,1,'C');
+// Cabeçalho da tabela
+$pdf->SetFont('Arial','B',11);
+$pdf->SetFillColor(106, 13, 173); // Roxo
+$pdf->SetTextColor(255, 255, 255); // Branco
+$pdf->Cell(30,8,'Data',1,0,'C',true);
+$pdf->Cell(70,8,utf8_decode('Descrição'),1,0,'C',true);
+$pdf->Cell(45,8,'Categoria',1,0,'C',true);
+$pdf->Cell(45,8,'Valor',1,1,'C',true);
 
-$pdf->SetFont('Arial','',12);
+// Dados
+$pdf->SetFont('Arial','',10);
+$pdf->SetTextColor(0, 0, 0); // Preto
 $fill = false;
 foreach($lancamentos as $l){
-    $pdf->Cell(30,10,$l['data'],1,0,'C',$fill);
-    $pdf->Cell(80,10,substr($l['descricao'],0,40),1,0,'L',$fill);
-    $pdf->Cell(40,10,substr($l['categoria_nome'],0,20),1,0,'L',$fill);
-    $pdf->Cell(40,10,$l['moeda'].' '.number_format($l['valor'],2,',','.'),1,1,'R',$fill);
+    $pdf->Cell(30,7,date('d/m/Y', strtotime($l['data'])),1,0,'C',$fill);
+    $pdf->Cell(70,7,utf8_decode(substr($l['descricao'],0,35)),1,0,'L',$fill);
+    $pdf->Cell(45,7,utf8_decode(substr($l['categoria_nome']??'',0,18)),1,0,'L',$fill);
+    $valor = ($l['moeda']??'R$').' '.number_format($l['valor'],2,',','.');
+    $pdf->Cell(45,7,$valor,1,1,'R',$fill);
     $fill = !$fill;
 }
+
+// Resumo
+$pdf->Ln(5);
+$pdf->SetFont('Arial','B',11);
+
+// Calcular totais
+$total_receitas = 0;
+$total_despesas = 0;
+foreach($lancamentos as $l){
+    if($l['tipo'] == 'receita'){
+        $total_receitas += $l['valor'];
+    } else {
+        $total_despesas += $l['valor'];
+    }
+}
+$saldo = $total_receitas - $total_despesas;
+
+$pdf->SetFillColor(40, 167, 69); // Verde
+$pdf->SetTextColor(255, 255, 255);
+$pdf->Cell(95,7,utf8_decode('Total Receitas:'),1,0,'L',true);
+$pdf->Cell(95,7,'R$ '.number_format($total_receitas,2,',','.'),1,1,'R',true);
+
+$pdf->SetFillColor(220, 53, 69); // Vermelho
+$pdf->Cell(95,7,utf8_decode('Total Despesas:'),1,0,'L',true);
+$pdf->Cell(95,7,'R$ '.number_format($total_despesas,2,',','.'),1,1,'R',true);
+
+$pdf->SetFillColor(106, 13, 173); // Roxo
+$pdf->Cell(95,7,'Saldo:',1,0,'L',true);
+$pdf->Cell(95,7,'R$ '.number_format($saldo,2,',','.'),1,1,'R',true);
 
 $pdf->Output();
 ?>
