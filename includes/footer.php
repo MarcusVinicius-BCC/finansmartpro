@@ -1,6 +1,10 @@
     </main>
     
-
+<?php
+$current_page = basename($_SERVER['PHP_SELF']);
+// Mostrar footer apenas na página inicial e páginas de autenticação
+if (in_array($current_page, ['index.php', 'login.php', 'forgot_password.php', 'reset_password.php'])):
+?>
     <footer class="footer mt-auto py-4">
         <div class="container">
             <div class="row">
@@ -125,6 +129,7 @@
         }
     }
     </style>
+<?php endif; ?>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="assets/js/main.js"></script>
