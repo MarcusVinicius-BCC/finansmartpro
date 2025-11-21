@@ -85,11 +85,9 @@ CREATE TABLE `cartoes` (
 
 CREATE TABLE `categorias` (
   `id` int(11) NOT NULL,
+  `id_usuario` int(11) NOT NULL,
   `nome` varchar(50) NOT NULL,
-  `tipo` enum('receita','despesa') NOT NULL,
-  `icone` varchar(50) DEFAULT 'fa-folder',
-  `cor` varchar(7) DEFAULT '#000000',
-  `descricao` text DEFAULT NULL
+  `tipo` enum('receita','despesa') NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
@@ -285,6 +283,19 @@ CREATE TABLE `relatorios_personalizados` (
 -- --------------------------------------------------------
 
 --
+-- Estrutura para tabela `password_resets`
+--
+
+CREATE TABLE `password_resets` (
+  `id` int(11) NOT NULL,
+  `email` varchar(255) NOT NULL,
+  `token` varchar(255) NOT NULL,
+  `expires_at` datetime NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Estrutura para tabela `usuarios`
 --
 
@@ -301,6 +312,18 @@ CREATE TABLE `usuarios` (
   `data_registro` datetime DEFAULT current_timestamp(),
   `ultimo_acesso` datetime DEFAULT NULL,
   `status` enum('ativo','inativo','bloqueado') DEFAULT 'ativo'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+CREATE TABLE IF NOT EXISTS `password_resets` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `email` varchar(255) NOT NULL,
+  `token` varchar(255) NOT NULL,
+  `expires_at` datetime NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `token` (`token`(191)),
+  KEY `email` (`email`(191))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
@@ -403,6 +426,13 @@ ALTER TABLE `relatorios_personalizados`
   ADD KEY `id_usuario` (`id_usuario`);
 
 --
+-- Índices de tabela `password_resets`
+--
+ALTER TABLE `password_resets`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `token` (`token`(191));
+
+--
 -- Índices de tabela `usuarios`
 --
 ALTER TABLE `usuarios`
@@ -483,6 +513,12 @@ ALTER TABLE `orcamentos`
 -- AUTO_INCREMENT de tabela `relatorios_personalizados`
 --
 ALTER TABLE `relatorios_personalizados`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT de tabela `password_resets`
+--
+ALTER TABLE `password_resets`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --

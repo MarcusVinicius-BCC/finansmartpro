@@ -1,6 +1,5 @@
 /* Estilos para o hero section da página inicial */
 .hero-section {
-    display: none !important;
     min-height: 85vh;
     display: flex;
     align-items: center;

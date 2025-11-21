@@ -67,6 +67,12 @@ if (session_status() == PHP_SESSION_NONE) session_start();
                         </a>
                     </li>
                     <li class="nav-item">
+                        <a class="nav-link <?= $current_page === 'categorias.php' ? 'active' : '' ?>" href="categorias.php">
+                            <i class="fas fa-tags"></i>
+                            <span>Categorias</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link <?= $current_page === 'relatorios.php' ? 'active' : '' ?>" href="relatorios.php">
                             <i class="fas fa-file-alt"></i>
                             <span>Relatórios</span>
@@ -113,10 +119,27 @@ if (session_status() == PHP_SESSION_NONE) session_start();
 
     <?php elseif(!isset($_SESSION['user_id'])): ?>
         <div class="position-absolute start-0 top-0 p-4">
-            <a href="index.php" class="btn btn-outline-primary">
+            <a href="index.php" class="btn btn-voltar">
                 <i class="fas fa-arrow-left"></i> Voltar
             </a>
         </div>
+        <style>
+        .btn-voltar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            color: #ffd700;
+            font-weight: 600;
+            padding: 0.5rem 1.5rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 12px rgba(106, 13, 173, 0.3);
+            transition: all 0.3s ease;
+        }
+        .btn-voltar:hover {
+            color: #ffd700;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(106, 13, 173, 0.4);
+        }
+        </style>
 
     <?php endif; ?>
 <?php endif; ?>
