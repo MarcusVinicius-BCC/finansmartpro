@@ -90,24 +90,28 @@
 
     <style>
     .footer {
-        background-color: var(--bs-body-bg);
-        border-top: 1px solid var(--bs-border-color);
+        background-color: #6a0dad;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        color: white;
     }
 
-    [data-theme="dark"] .footer {
-        background-color: var(--bs-dark);
+    .footer h5 {
+        color: white !important;
     }
 
-    .footer .social-links a:hover {
-        opacity: 0.8;
+    .footer .text-muted,
+    .footer a {
+        color: rgba(255, 255, 255, 0.8) !important;
     }
 
+    .footer .social-links a:hover,
     .footer a:hover {
-        color: var(--bs-primary) !important;
+        color: white !important;
+        opacity: 0.9;
     }
 
     .footer hr {
-        border-color: var(--bs-border-color);
+        border-color: rgba(255, 255, 255, 0.2);
     }
 
     @media (max-width: 767.98px) {
