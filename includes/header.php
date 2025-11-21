@@ -49,7 +49,6 @@ if (session_status() == PHP_SESSION_NONE) session_start();
         <aside class="sidebar" id="sidebar">
             <div class="sidebar-header">
                 <img src="assets/img/mockup.png" alt="FinanSmart Pro Logo">
-                <span class="logo-text">FinanSmart Pro</span>
             </div>
             
             <nav class="sidebar-nav">
@@ -64,12 +63,6 @@ if (session_status() == PHP_SESSION_NONE) session_start();
                         <a class="nav-link <?= $current_page === 'lancamentos.php' ? 'active' : '' ?>" href="lancamentos.php">
                             <i class="fas fa-exchange-alt"></i>
                             <span>Lançamentos</span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link <?= $current_page === 'categorias.php' ? 'active' : '' ?>" href="categorias.php">
-                            <i class="fas fa-tags"></i>
-                            <span>Categorias</span>
                         </a>
                     </li>
                     <li class="nav-item">
@@ -99,12 +92,13 @@ if (session_status() == PHP_SESSION_NONE) session_start();
                         <i class="fas fa-user-circle fa-2x"></i>
                     </div>
                     <div class="user-details">
-                        <h6 class="user-name mb-0"><?php echo htmlspecialchars($_SESSION['user_name']); ?></h6>
-                        <a href="logout.php" class="text-white-50 small">
-                            <i class="fas fa-sign-out-alt"></i> Sair
-                        </a>
+                        <div class="d-flex align-items-center justify-content-between gap-3">
+                            <h6 class="user-name mb-0"><?php echo htmlspecialchars($_SESSION['user_name']); ?></h6>
+                            <a href="logout.php" class="btn-sair">
+                                <i class="fas fa-sign-out-alt"></i> Sair
+                            </a>
+                        </div>
                     </div>
-
                 </div>
             </div>
         </aside>

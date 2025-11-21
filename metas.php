@@ -9,10 +9,40 @@ if (!isset($_SESSION['user_id'])) {
 
 require_once 'includes/db.php';
 
-// Processar o formulário de nova meta
+// Processar o formulário de nova meta e categorias
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['action'])) {
-        if ($_POST['action'] === 'create') {
+        if ($_POST['action'] === 'add_category') {
+            $nome = trim($_POST['nome']);
+            $tipo = $_POST['tipo'];
+            
+            $stmt = $pdo->prepare("INSERT INTO categorias (id_usuario, nome, tipo) VALUES (?, ?, ?)");
+            $stmt->execute([$_SESSION['user_id'], $nome, $tipo]);
+            
+            echo json_encode(['success' => true]);
+            exit;
+        }
+        elseif ($_POST['action'] === 'edit_category') {
+            $id = $_POST['id'];
+            $nome = trim($_POST['nome']);
+            $tipo = $_POST['tipo'];
+            
+            $stmt = $pdo->prepare("UPDATE categorias SET nome = ?, tipo = ? WHERE id = ? AND id_usuario = ?");
+            $stmt->execute([$nome, $tipo, $id, $_SESSION['user_id']]);
+            
+            echo json_encode(['success' => true]);
+            exit;
+        }
+        elseif ($_POST['action'] === 'delete_category') {
+            $id = $_POST['id'];
+            
+            $stmt = $pdo->prepare("DELETE FROM categorias WHERE id = ? AND id_usuario = ?");
+            $stmt->execute([$id, $_SESSION['user_id']]);
+            
+            echo json_encode(['success' => true]);
+            exit;
+        }
+        elseif ($_POST['action'] === 'create') {
             $descricao = trim($_POST['descricao']);
             $valor_meta = floatval(str_replace(['R$', '.', ','], ['', '', '.'], $_POST['valor_meta']));
             $data_limite = $_POST['data_limite'];
@@ -45,6 +75,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $stmt = $pdo->prepare("SELECT * FROM metas WHERE id_usuario = ? ORDER BY data_limite ASC");
 $stmt->execute([$_SESSION['user_id']]);
 $metas = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Buscar categorias (sistema + usuário)
+$stmt = $pdo->prepare("SELECT * FROM categorias WHERE id_usuario = ? OR id_usuario = 0 OR id_usuario IS NULL ORDER BY tipo, nome");
+$stmt->execute([$_SESSION['user_id']]);
+$categorias = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Separar por tipo
+$categoriasReceita = array_filter($categorias, fn($c) => $c['tipo'] === 'receita');
+$categoriasDespesa = array_filter($categorias, fn($c) => $c['tipo'] === 'despesa');
 
 require_once 'includes/header.php';
 ?>
@@ -168,14 +207,27 @@ require_once 'includes/header.php';
                     </div>
                     <div class="mb-3">
                         <label for="categoria" class="form-label">Categoria</label>
-                        <select class="form-select" id="categoria" name="categoria" required>
-                            <option value="">Selecione uma categoria</option>
-                            <option value="Economia">Economia</option>
-                            <option value="Investimento">Investimento</option>
-                            <option value="Compra">Compra</option>
-                            <option value="Viagem">Viagem</option>
-                            <option value="Outro">Outro</option>
-                        </select>
+                        <div class="input-group">
+                            <select class="form-select" id="categoria" name="categoria" required>
+                                <option value="">Selecione uma categoria</option>
+                                <optgroup label="Receitas">
+                                    <?php foreach ($categoriasReceita as $cat): ?>
+                                        <option value="<?= htmlspecialchars($cat['nome']) ?>"><?= htmlspecialchars($cat['nome']) ?></option>
+                                    <?php endforeach; ?>
+                                </optgroup>
+                                <optgroup label="Despesas">
+                                    <?php foreach ($categoriasDespesa as $cat): ?>
+                                        <option value="<?= htmlspecialchars($cat['nome']) ?>"><?= htmlspecialchars($cat['nome']) ?></option>
+                                    <?php endforeach; ?>
+                                </optgroup>
+                            </select>
+                            <button type="button" class="btn btn-outline-secondary" onclick="openQuickAddCategory()" title="Adicionar nova categoria">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary" onclick="openManageCategories()" title="Gerenciar categorias">
+                                <i class="fas fa-cog"></i>
+                            </button>
+                        </div>
                     </div>
                     <div class="mb-3">
                         <label for="data_limite" class="form-label">Data Limite</label>
@@ -252,6 +304,128 @@ require_once 'includes/header.php';
     </div>
 </div>
 
+<!-- Modal Adicionar Categoria Rápida -->
+<div class="modal fade" id="quickAddCategory" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Adicionar Nova Categoria</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label for="quick_nome" class="form-label">Nome da Categoria</label>
+                    <input type="text" class="form-control" id="quick_nome" required>
+                </div>
+                <div class="mb-3">
+                    <label for="quick_tipo" class="form-label">Tipo</label>
+                    <select class="form-select" id="quick_tipo" required>
+                        <option value="receita">Receita</option>
+                        <option value="despesa">Despesa</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="saveQuickCategory()">Adicionar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Gerenciar Categorias -->
+<div class="modal fade" id="manageCategories" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Gerenciar Categorias</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 class="mb-3">Receitas</h6>
+                        <div class="list-group">
+                            <?php foreach ($categoriasReceita as $cat): ?>
+                                <div class="list-group-item d-flex justify-content-between align-items-center">
+                                    <span><?= htmlspecialchars($cat['nome']) ?></span>
+                                    <?php if ($cat['id_usuario'] != 0 && $cat['id_usuario'] != null): ?>
+                                        <div>
+                                            <button class="btn btn-sm btn-outline-primary" onclick='editCategory(<?= json_encode($cat) ?>)'>
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-danger" onclick="deleteCategory(<?= $cat['id'] ?>)">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    <?php else: ?>
+                                        <span class="badge bg-secondary">Sistema</span>
+                                    <?php endif; ?>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="mb-3">Despesas</h6>
+                        <div class="list-group">
+                            <?php foreach ($categoriasDespesa as $cat): ?>
+                                <div class="list-group-item d-flex justify-content-between align-items-center">
+                                    <span><?= htmlspecialchars($cat['nome']) ?></span>
+                                    <?php if ($cat['id_usuario'] != 0 && $cat['id_usuario'] != null): ?>
+                                        <div>
+                                            <button class="btn btn-sm btn-outline-primary" onclick='editCategory(<?= json_encode($cat) ?>)'>
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-danger" onclick="deleteCategory(<?= $cat['id'] ?>)">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    <?php else: ?>
+                                        <span class="badge bg-secondary">Sistema</span>
+                                    <?php endif; ?>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Editar Categoria -->
+<div class="modal fade" id="editCategoryModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Editar Categoria</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="edit_cat_id">
+                <div class="mb-3">
+                    <label for="edit_nome" class="form-label">Nome da Categoria</label>
+                    <input type="text" class="form-control" id="edit_nome" required>
+                </div>
+                <div class="mb-3">
+                    <label for="edit_tipo" class="form-label">Tipo</label>
+                    <select class="form-select" id="edit_tipo" required>
+                        <option value="receita">Receita</option>
+                        <option value="despesa">Despesa</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="saveEditCategory()">Salvar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-maskmoney/3.0.2/jquery.maskMoney.min.js"></script>
@@ -263,6 +437,35 @@ $(document).ready(function() {
         thousands: '.',
         decimal: ',',
         affixesStay: false
+    });
+    
+    // Limpar backdrop ao fechar modais
+    $('#quickAddCategory').on('hidden.bs.modal', function() {
+        // Remover qualquer backdrop residual
+        $('.modal-backdrop').remove();
+        $('body').removeClass('modal-open');
+        $('body').css('padding-right', '');
+        
+        // Reabrir modal de nova meta se não foi salvamento
+        if (!$(this).data('saved')) {
+            setTimeout(() => {
+                const novaMetaModal = new bootstrap.Modal(document.getElementById('novametaModal'));
+                novaMetaModal.show();
+            }, 300);
+        }
+        $(this).data('saved', false); // Reset flag
+    });
+    
+    $('#manageCategories').on('hidden.bs.modal', function() {
+        // Remover qualquer backdrop residual
+        $('.modal-backdrop').remove();
+        $('body').removeClass('modal-open');
+        $('body').css('padding-right', '');
+        
+        setTimeout(() => {
+            const novaMetaModal = new bootstrap.Modal(document.getElementById('novametaModal'));
+            novaMetaModal.show();
+        }, 300);
     });
 });
 
@@ -280,6 +483,152 @@ function abrirModalAtualizar(meta) {
 function confirmarExclusao(metaId) {
     document.getElementById('meta_id_delete').value = metaId;
     new bootstrap.Modal(document.getElementById('excluirModal')).show();
+}
+
+// Funções de gerenciamento de categorias
+function openQuickAddCategory() {
+    // Fechar o modal de nova meta temporariamente
+    const novaMetaModal = bootstrap.Modal.getInstance(document.getElementById('novametaModal'));
+    if (novaMetaModal) {
+        novaMetaModal.hide();
+    }
+    
+    // Aguardar o fechamento e abrir o modal de categoria
+    setTimeout(() => {
+        const modal = new bootstrap.Modal(document.getElementById('quickAddCategory'));
+        modal.show();
+    }, 300);
+}
+
+function openManageCategories() {
+    // Fechar o modal de nova meta temporariamente
+    const novaMetaModal = bootstrap.Modal.getInstance(document.getElementById('novametaModal'));
+    if (novaMetaModal) {
+        novaMetaModal.hide();
+    }
+    
+    // Aguardar o fechamento e abrir o modal de gerenciamento
+    setTimeout(() => {
+        const modal = new bootstrap.Modal(document.getElementById('manageCategories'));
+        modal.show();
+    }, 300);
+}
+
+function saveQuickCategory() {
+    const nome = document.getElementById('quick_nome').value;
+    const tipo = document.getElementById('quick_tipo').value;
+    
+    if (!nome) {
+        alert('Por favor, preencha o nome da categoria');
+        return;
+    }
+    
+    $.ajax({
+        url: 'metas.php',
+        method: 'POST',
+        data: {
+            action: 'add_category',
+            nome: nome,
+            tipo: tipo
+        },
+        success: function(response) {
+            // Marcar como salvo para não reabrir automaticamente
+            $('#quickAddCategory').data('saved', true);
+            
+            // Fechar o modal de adicionar categoria
+            const quickModalEl = document.getElementById('quickAddCategory');
+            const quickModal = bootstrap.Modal.getInstance(quickModalEl);
+            if (quickModal) {
+                quickModal.hide();
+            }
+            
+            // Limpar backdrop
+            $('.modal-backdrop').remove();
+            $('body').removeClass('modal-open');
+            $('body').css('padding-right', '');
+            
+            // Adicionar a nova categoria ao select
+            const select = document.getElementById('categoria');
+            const optgroup = tipo === 'receita' ? select.querySelector('optgroup[label="Receitas"]') : select.querySelector('optgroup[label="Despesas"]');
+            const newOption = document.createElement('option');
+            newOption.value = nome;
+            newOption.textContent = nome;
+            newOption.selected = true;
+            optgroup.appendChild(newOption);
+            
+            // Limpar o formulário
+            document.getElementById('quick_nome').value = '';
+            document.getElementById('quick_tipo').value = 'receita';
+            
+            // Reabrir modal de nova meta
+            setTimeout(() => {
+                const novaMetaModal = new bootstrap.Modal(document.getElementById('novametaModal'));
+                novaMetaModal.show();
+            }, 300);
+        },
+        error: function() {
+            alert('Erro ao adicionar categoria');
+        }
+    });
+}
+
+function editCategory(cat) {
+    document.getElementById('edit_cat_id').value = cat.id;
+    document.getElementById('edit_nome').value = cat.nome;
+    document.getElementById('edit_tipo').value = cat.tipo;
+    
+    bootstrap.Modal.getInstance(document.getElementById('manageCategories')).hide();
+    const modal = new bootstrap.Modal(document.getElementById('editCategoryModal'));
+    modal.show();
+}
+
+function saveEditCategory() {
+    const id = document.getElementById('edit_cat_id').value;
+    const nome = document.getElementById('edit_nome').value;
+    const tipo = document.getElementById('edit_tipo').value;
+    
+    if (!nome) {
+        alert('Por favor, preencha o nome da categoria');
+        return;
+    }
+    
+    $.ajax({
+        url: 'metas.php',
+        method: 'POST',
+        data: {
+            action: 'edit_category',
+            id: id,
+            nome: nome,
+            tipo: tipo
+        },
+        success: function(response) {
+            location.reload();
+        },
+        error: function() {
+            alert('Erro ao editar categoria');
+        }
+    });
+}
+
+function deleteCategory(id) {
+    if (!confirm('Tem certeza que deseja excluir esta categoria?')) {
+        return;
+    }
+    
+    $.ajax({
+        url: 'metas.php',
+        method: 'POST',
+        data: {
+            action: 'delete_category',
+            id: id
+        },
+        success: function(response) {
+            location.reload();
+        },
+        error: function() {
+            alert('Erro ao excluir categoria');
+        }
+    });
 }
 </script>
 
