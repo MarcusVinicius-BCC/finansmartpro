@@ -104,6 +104,32 @@ if(isset($monthly_data[$previous_month])) {
     $trend_data['previous'] = $monthly_data[$previous_month];
 }
 
+// Preparar dados dos últimos 6 meses para sparklines
+$sparkline_data = [];
+for($i = 5; $i >= 0; $i--) {
+    $month = date('Y-m', strtotime("-$i months"));
+    $sparkline_data[$month] = [
+        'patrimonio' => 0,
+        'receitas' => 0,
+        'despesas' => 0,
+        'saldo' => 0
+    ];
+}
+// Preencher com dados reais
+foreach($monthly_data as $mes => $dados) {
+    if(isset($sparkline_data[$mes])) {
+        $sparkline_data[$mes]['receitas'] = $dados['receitas'];
+        $sparkline_data[$mes]['despesas'] = $dados['despesas'];
+        $sparkline_data[$mes]['saldo'] = $dados['receitas'] - $dados['despesas'];
+    }
+}
+// Calcular patrimônio acumulado
+$acumulado = 0;
+foreach($sparkline_data as $mes => &$dados) {
+    $acumulado += $dados['saldo'];
+    $dados['patrimonio'] = $acumulado;
+}
+
 $receitas_trend = 0;
 $despesas_trend = 0;
 if($trend_data['previous']['receitas'] > 0) {
@@ -157,21 +183,25 @@ require 'includes/header.php';
             <h4 class="mb-3">Resumo Financeiro</h4>
         </div>
         <div class="col-12 col-md-6 col-xl-3 mb-4">
-            <div class="card text-white h-100" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+            <a href="lancamentos.php?view=all" class="text-decoration-none" role="button" aria-label="Ver todos os lançamentos">
+            <div class="card text-white h-100 card-clickable" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
                 <div class="card-body">
                     <div class="d-flex justify-content-between">
                         <div>
                             <h6 class="text-white-75 mb-1">Patrimônio Total</h6>
-                            <h3 class="mb-0 fw-bold"><?= number_format($consolidated, 2, ',', '.') ?> <?= $base ?></h3>
+                            <h3 class="mb-0 fw-bold"><?= format_currency($consolidated, $base) ?></h3>
                         </div>
                         <div class="rounded-circle bg-white p-3 d-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
-                            <span class="fw-bold" style="font-size: 1.5rem; color: #ffd700;"><?= $base === 'BRL' ? 'R$' : ($base === 'USD' ? '$' : '€') ?></span>
+                            <span class="fw-bold" style="font-size: 1.5rem; color: #ffd700;" aria-hidden="true"><?= $base === 'BRL' ? 'R$' : ($base === 'USD' ? '$' : '€') ?></span>
                         </div>
                     </div>
                     <div class="mt-3">
+                        <canvas id="sparkline-patrimonio" height="40" aria-label="Gráfico de tendência do patrimônio dos últimos 6 meses"></canvas>
+                    </div>
+                    <div class="mt-2">
                         <?php if($saldo_trend != 0): ?>
                             <span class="badge bg-light text-dark">
-                                <i class="fas fa-<?= $saldo_trend > 0 ? 'arrow-up' : 'arrow-down' ?>"></i>
+                                <i class="fas fa-<?= $saldo_trend > 0 ? 'arrow-up' : 'arrow-down' ?>" aria-hidden="true"></i>
                                 <?= number_format(abs($saldo_trend), 1) ?>% vs mês anterior
                             </span>
                         <?php else: ?>
@@ -180,24 +210,29 @@ require 'includes/header.php';
                     </div>
                 </div>
             </div>
+            </a>
         </div>
         
         <div class="col-12 col-md-6 col-xl-3 mb-4">
-            <div class="card text-white h-100" style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);">
+            <a href="lancamentos.php?filter_type=receita&filter_date_start=<?= date('Y-m-01') ?>&filter_date_end=<?= date('Y-m-t') ?>" class="text-decoration-none" role="button" aria-label="Ver receitas do mês">
+            <div class="card text-white h-100 card-clickable" style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);">
                 <div class="card-body">
                     <div class="d-flex justify-content-between">
                         <div>
                             <h6 class="text-white-75 mb-1">Receitas do Mês</h6>
-                            <h3 class="mb-0 fw-bold"><?= number_format($trend_data['current']['receitas'], 2, ',', '.') ?> <?= $base ?></h3>
+                            <h3 class="mb-0 fw-bold"><?= format_currency($trend_data['current']['receitas'], $base) ?></h3>
                         </div>
                         <div class="rounded-circle bg-white p-3 d-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
-                            <span class="fw-bold" style="font-size: 1.5rem; color: #11998e;"><?= $base === 'BRL' ? 'R$' : ($base === 'USD' ? '$' : '€') ?></span>
+                            <span class="fw-bold" style="font-size: 1.5rem; color: #11998e;" aria-hidden="true"><?= $base === 'BRL' ? 'R$' : ($base === 'USD' ? '$' : '€') ?></span>
                         </div>
                     </div>
                     <div class="mt-3">
+                        <canvas id="sparkline-receitas" height="40" aria-label="Gráfico de tendência das receitas dos últimos 6 meses"></canvas>
+                    </div>
+                    <div class="mt-2">
                         <?php if($receitas_trend != 0): ?>
                             <span class="badge bg-light text-dark">
-                                <i class="fas fa-<?= $receitas_trend > 0 ? 'arrow-up' : 'arrow-down' ?>"></i>
+                                <i class="fas fa-<?= $receitas_trend > 0 ? 'arrow-up' : 'arrow-down' ?>" aria-hidden="true"></i>
                                 <?= number_format(abs($receitas_trend), 1) ?>% vs mês anterior
                             </span>
                         <?php else: ?>
@@ -206,24 +241,29 @@ require 'includes/header.php';
                     </div>
                 </div>
             </div>
+            </a>
         </div>
         
         <div class="col-12 col-md-6 col-xl-3 mb-4">
-            <div class="card text-white h-100" style="background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);">
+            <a href="lancamentos.php?filter_type=despesa&filter_date_start=<?= date('Y-m-01') ?>&filter_date_end=<?= date('Y-m-t') ?>" class="text-decoration-none" role="button" aria-label="Ver despesas do mês">
+            <div class="card text-white h-100 card-clickable" style="background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);">
                 <div class="card-body">
                     <div class="d-flex justify-content-between">
                         <div>
                             <h6 class="text-white-75 mb-1">Despesas do Mês</h6>
-                            <h3 class="mb-0 fw-bold"><?= number_format($trend_data['current']['despesas'], 2, ',', '.') ?> <?= $base ?></h3>
+                            <h3 class="mb-0 fw-bold"><?= format_currency($trend_data['current']['despesas'], $base) ?></h3>
                         </div>
                         <div class="rounded-circle bg-white p-3 d-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
-                            <span class="fw-bold" style="font-size: 1.5rem; color: #eb3349;"><?= $base === 'BRL' ? 'R$' : ($base === 'USD' ? '$' : '€') ?></span>
+                            <span class="fw-bold" style="font-size: 1.5rem; color: #eb3349;" aria-hidden="true"><?= $base === 'BRL' ? 'R$' : ($base === 'USD' ? '$' : '€') ?></span>
                         </div>
                     </div>
                     <div class="mt-3">
+                        <canvas id="sparkline-despesas" height="40" aria-label="Gráfico de tendência das despesas dos últimos 6 meses"></canvas>
+                    </div>
+                    <div class="mt-2">
                         <?php if($despesas_trend != 0): ?>
                             <span class="badge bg-light text-dark">
-                                <i class="fas fa-<?= $despesas_trend > 0 ? 'arrow-up' : 'arrow-down' ?>"></i>
+                                <i class="fas fa-<?= $despesas_trend > 0 ? 'arrow-up' : 'arrow-down' ?>" aria-hidden="true"></i>
                                 <?= number_format(abs($despesas_trend), 1) ?>% vs mês anterior
                             </span>
                         <?php else: ?>
@@ -232,27 +272,33 @@ require 'includes/header.php';
                     </div>
                 </div>
             </div>
+            </a>
         </div>
         
         <div class="col-12 col-md-6 col-xl-3 mb-4">
-            <div class="card text-white h-100" style="background: linear-gradient(135deg, #2193b0 0%, #6dd5ed 100%);">
+            <a href="lancamentos.php?filter_date_start=<?= date('Y-m-01') ?>&filter_date_end=<?= date('Y-m-t') ?>" class="text-decoration-none" role="button" aria-label="Ver saldo do mês">
+            <div class="card text-white h-100 card-clickable" style="background: linear-gradient(135deg, #2193b0 0%, #6dd5ed 100%);">
                 <div class="card-body">
                     <div class="d-flex justify-content-between">
                         <div>
                             <h6 class="text-white-75 mb-1">Saldo do Mês</h6>
-                            <h3 class="mb-0 fw-bold"><?= number_format($saldo_current, 2, ',', '.') ?> <?= $base ?></h3>
+                            <h3 class="mb-0 fw-bold"><?= format_currency($saldo_current, $base) ?></h3>
                         </div>
                         <div class="rounded-circle bg-white p-3 d-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
-                            <span class="fw-bold" style="font-size: 1.5rem; color: #2193b0;"><?= $base === 'BRL' ? 'R$' : ($base === 'USD' ? '$' : '€') ?></span>
+                            <span class="fw-bold" style="font-size: 1.5rem; color: #2193b0;" aria-hidden="true"><?= $base === 'BRL' ? 'R$' : ($base === 'USD' ? '$' : '€') ?></span>
                         </div>
                     </div>
                     <div class="mt-3">
+                        <canvas id="sparkline-saldo" height="40" aria-label="Gráfico de tendência do saldo dos últimos 6 meses"></canvas>
+                    </div>
+                    <div class="mt-2">
                         <span class="badge bg-light text-dark">
                             Mês atual: <?= date('m/Y') ?>
                         </span>
                     </div>
                 </div>
             </div>
+            </a>
         </div>
     </div>
     
@@ -269,7 +315,7 @@ require 'includes/header.php';
                     <div class="d-flex justify-content-between align-items-start mb-3">
                         <div>
                             <h6 class="text-muted mb-0">Saldo em <?= $moeda ?></h6>
-                            <h4 class="mb-0 fw-bold"><?= number_format($dados['saldo'], 2, ',', '.') ?> <?= $moeda ?></h4>
+                            <h4 class="mb-0 fw-bold"><?= format_currency($dados['saldo'], $moeda) ?></h4>
                         </div>
                         <div class="rounded-circle d-flex align-items-center justify-content-center" 
                              style="width: 50px; height: 50px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
@@ -279,11 +325,11 @@ require 'includes/header.php';
                     <div class="small">
                         <div class="d-flex justify-content-between mb-1">
                             <span class="text-muted">Receitas:</span>
-                            <span class="text-success fw-bold"><?= number_format($dados['receita_total'], 2, ',', '.') ?></span>
+                            <span class="text-success fw-bold"><?= format_currency($dados['receita_total'], $moeda) ?></span>
                         </div>
                         <div class="d-flex justify-content-between">
                             <span class="text-muted">Despesas:</span>
-                            <span class="text-danger fw-bold"><?= number_format($dados['despesa_total'], 2, ',', '.') ?></span>
+                            <span class="text-danger fw-bold"><?= format_currency($dados['despesa_total'], $moeda) ?></span>
                         </div>
                     </div>
                 </div>
@@ -347,7 +393,7 @@ require 'includes/header.php';
                                 ?>
                                 <tr>
                                     <td><?= htmlspecialchars($cat['categoria']) ?></td>
-                                    <td class="text-end"><?= number_format($cat['total'], 2, ',', '.') ?></td>
+                                    <td class="text-end"><?= format_currency($cat['total'], $base) ?></td>
                                     <td class="text-end">
                                         <span class="badge bg-primary"><?= number_format($percentage, 1) ?>%</span>
                                     </td>
@@ -402,7 +448,7 @@ require 'includes/header.php';
                                     </td>
                                     <td class="<?= $l['tipo']=='receita' ? 'text-success' : 'text-danger' ?>">
                                         <?= $l['tipo']=='receita' ? '+' : '-' ?> 
-                                        <?= $l['moeda'] ?> <?= number_format($l['valor'],2,',','.') ?>
+                                        <?= format_currency($l['valor'], $l['moeda']) ?>
                                     </td>
                                 </tr>
                                 <?php endforeach; ?>
@@ -480,9 +526,8 @@ require 'includes/header.php';
                                         </div>
                                         <div class="d-flex justify-content-between mt-1">
                                             <small class="text-muted">
-                                                <?= number_format($meta['valor_atual'], 2, ',', '.') ?> / 
-                                                <?= number_format($meta['valor_meta'], 2, ',', '.') ?> 
-                                                <?= $meta['moeda'] ?? 'BRL' ?>
+                                                <?= format_currency($meta['valor_atual'], $meta['moeda'] ?? 'BRL') ?> / 
+                                                <?= format_currency($meta['valor_meta'], $meta['moeda'] ?? 'BRL') ?>
                                             </small>
                                             <small class="text-muted">
                                                 <?= date('d/m/Y', strtotime($meta['data_limite'])) ?>
@@ -515,7 +560,7 @@ require 'includes/header.php';
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Valor da Meta</label>
-                        <input type="number" class="form-control" name="valor_meta" required>
+                        <input type="text" class="form-control money-input" name="valor_meta" required placeholder="0,00">
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Data Limite</label>
@@ -789,6 +834,94 @@ new Chart(comparisonCtx, {
             }
         }
     }
+});
+
+// Sparklines nos cards (últimos 6 meses)
+const sparklineData = <?= json_encode(array_values($sparkline_data)) ?>;
+
+function createSparkline(canvasId, dataKey, color) {
+    const ctx = document.getElementById(canvasId);
+    if (!ctx) return;
+    
+    const data = sparklineData.map(d => d[dataKey]);
+    
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: sparklineData.map((d, i) => i),
+            datasets: [{
+                data: data,
+                borderColor: 'rgba(255, 255, 255, 0.9)',
+                backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                fill: true,
+                tension: 0.4,
+                pointRadius: 0,
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: { enabled: false }
+            },
+            scales: {
+                x: { display: false },
+                y: { display: false }
+            },
+            interaction: { mode: null }
+        }
+    });
+}
+
+// Renderizar sparklines
+createSpark line('sparkline-patrimonio', 'patrimonio');
+createSpark line('sparkline-receitas', 'receitas');
+createSpark line('sparkline-despesas', 'despesas');
+createSpark line('sparkline-saldo', 'saldo');
+
+// Formatação de valor monetário
+function formatMoney(input) {
+  let value = input.value.replace(/\D/g, '');
+  value = (parseInt(value) / 100).toFixed(2);
+  value = value.replace('.', ',');
+  value = value.replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1.');
+  input.value = value;
+}
+
+function unformatMoney(value) {
+  return value.replace(/\./g, '').replace(',', '.');
+}
+
+document.querySelectorAll('.money-input').forEach(input => {
+  input.addEventListener('input', function() {
+    formatMoney(this);
+  });
+  
+  input.addEventListener('blur', function() {
+    if (this.value === '' || this.value === '0,00') {
+      this.value = '0,00';
+    }
+  });
+});
+
+// Interceptar submissão dos formulários para converter valor
+document.querySelectorAll('form').forEach(form => {
+  form.addEventListener('submit', function(e) {
+    const valorInputs = this.querySelectorAll('.money-input');
+    valorInputs.forEach(input => {
+      if (input.value && input.name) {
+        const originalName = input.name;
+        const hiddenInput = document.createElement('input');
+        hiddenInput.type = 'hidden';
+        hiddenInput.name = originalName;
+        hiddenInput.value = unformatMoney(input.value);
+        this.appendChild(hiddenInput);
+        input.removeAttribute('name');
+      }
+    });
+  });
 });
 </script>
 

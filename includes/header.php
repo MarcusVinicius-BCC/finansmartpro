@@ -14,6 +14,18 @@ if (session_status() == PHP_SESSION_NONE) session_start();
 
     <?php 
     $current_page = basename($_SERVER['PHP_SELF']);
+        // Carregar moeda do usuário para o seletor (quando logado)
+        $user_base = 'BRL';
+        if (isset($_SESSION['user_id'])) {
+            // include db apenas se disponível
+            if (!isset($pdo)) {
+                require_once __DIR__ . '/db.php';
+            }
+            $stmtBase = $pdo->prepare('SELECT moeda_base FROM usuarios WHERE id = ?');
+            $stmtBase->execute([$_SESSION['user_id']]);
+            $rowBase = $stmtBase->fetch();
+            $user_base = $rowBase['moeda_base'] ?? 'BRL';
+        }
     if ($current_page === 'index.php'): ?>
         <link href="assets/css/hero.css" rel="stylesheet">
     <?php endif; ?>
@@ -40,6 +52,12 @@ if (session_status() == PHP_SESSION_NONE) session_start();
         <script src="assets/js/notifications.js" defer></script>
     <?php endif; ?>
     <script src="assets/js/main.js" defer></script>
+
+    <script>
+        // Expor configuração global do front-end (moeda do usuário)
+        window.FINANSMART = window.FINANSMART || {};
+        window.FINANSMART.userBase = '<?= isset($user_base) ? $user_base : 'BRL' ?>';
+    </script>
 
 
 </head>
@@ -90,6 +108,60 @@ if (session_status() == PHP_SESSION_NONE) session_start();
                             <span>Investimentos</span>
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link <?= $current_page === 'categorias.php' ? 'active' : '' ?>" href="categorias.php">
+                            <i class="fas fa-tags"></i>
+                            <span>Categorias</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link <?= $current_page === 'cartoes.php' ? 'active' : '' ?>" href="cartoes.php">
+                            <i class="fas fa-credit-card"></i>
+                            <span>Cartões</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link <?= $current_page === 'contas.php' ? 'active' : '' ?>" href="contas.php">
+                            <i class="fas fa-university"></i>
+                            <span>Contas</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link <?= $current_page === 'analytics.php' ? 'active' : '' ?>" href="analytics.php">
+                            <i class="fas fa-chart-bar"></i>
+                            <span>Analytics</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link <?= $current_page === 'recorrentes.php' ? 'active' : '' ?>" href="recorrentes.php">
+                            <i class="fas fa-sync-alt"></i>
+                            <span>Recorrentes</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link <?= $current_page === 'lembretes.php' ? 'active' : '' ?>" href="lembretes.php">
+                            <i class="fas fa-bell"></i>
+                            <span>Lembretes</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link <?= $current_page === 'planejamento.php' ? 'active' : '' ?>" href="planejamento.php">
+                            <i class="fas fa-chart-line"></i>
+                            <span>Planejamento</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link <?= $current_page === 'importar.php' ? 'active' : '' ?>" href="importar.php">
+                            <i class="fas fa-file-import"></i>
+                            <span>Importar</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link <?= $current_page === 'contas_pagar_receber.php' ? 'active' : '' ?>" href="contas_pagar_receber.php">
+                            <i class="fas fa-file-invoice-dollar"></i>
+                            <span>Pagar/Receber</span>
+                        </a>
+                    </li>
                 </ul>
             </nav>
 
@@ -126,6 +198,51 @@ if (session_status() == PHP_SESSION_NONE) session_start();
                             </div>
                         </div>
                     </div>
+                </div>
+                <div class="mt-3 px-3">
+                    <div class="currency-selector">
+                        <button type="button" class="currency-current" id="currencyToggle" aria-label="Alternar moeda" aria-expanded="false">
+                            <i class="fas fa-exchange-alt"></i>
+                            <span class="currency-symbol"><?= $user_base === 'BRL' ? 'R$' : ($user_base === 'USD' ? '$' : '€') ?></span>
+                            <span class="currency-code"><?= $user_base ?></span>
+                            <i class="fas fa-chevron-down ms-auto"></i>
+                        </button>
+                        <form method="post" action="set_currency.php" class="currency-dropdown" id="currencyDropdown">
+                            <button type="submit" name="moeda_base" value="BRL" class="currency-option <?= $user_base === 'BRL' ? 'active' : '' ?>">
+                                <span class="currency-symbol">R$</span>
+                                <span class="currency-code">BRL</span>
+                                <span class="currency-name">Real</span>
+                            </button>
+                            <button type="submit" name="moeda_base" value="USD" class="currency-option <?= $user_base === 'USD' ? 'active' : '' ?>">
+                                <span class="currency-symbol">$</span>
+                                <span class="currency-code">USD</span>
+                                <span class="currency-name">Dólar</span>
+                            </button>
+                            <button type="submit" name="moeda_base" value="EUR" class="currency-option <?= $user_base === 'EUR' ? 'active' : '' ?>">
+                                <span class="currency-symbol">€</span>
+                                <span class="currency-code">EUR</span>
+                                <span class="currency-name">Euro</span>
+                            </button>
+                            <input type="hidden" name="redirect" value="<?= htmlspecialchars($_SERVER['REQUEST_URI']) ?>">
+                        </form>
+                    </div>
+                    <script>
+                    document.getElementById('currencyToggle').addEventListener('click', function() {
+                        const dropdown = document.getElementById('currencyDropdown');
+                        const isOpen = dropdown.classList.toggle('show');
+                        this.setAttribute('aria-expanded', isOpen);
+                        this.querySelector('.fa-chevron-down').style.transform = isOpen ? 'rotate(180deg)' : 'rotate(0deg)';
+                    });
+                    document.addEventListener('click', function(e) {
+                        if (!e.target.closest('.currency-selector')) {
+                            const dropdown = document.getElementById('currencyDropdown');
+                            const toggle = document.getElementById('currencyToggle');
+                            dropdown.classList.remove('show');
+                            toggle.setAttribute('aria-expanded', 'false');
+                            toggle.querySelector('.fa-chevron-down').style.transform = 'rotate(0deg)';
+                        }
+                    });
+                    </script>
                 </div>
             </div>
         </aside>

@@ -550,6 +550,50 @@ ALTER TABLE `cartoes`
   ADD CONSTRAINT `cartoes_ibfk_1` FOREIGN KEY (`id_usuario`) REFERENCES `usuarios` (`id`) ON DELETE CASCADE;
 
 --
+-- Tabela de contas bancárias
+--
+CREATE TABLE IF NOT EXISTS `contas_bancarias` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `id_usuario` int(11) NOT NULL,
+  `nome` varchar(100) NOT NULL,
+  `tipo` varchar(50) NOT NULL,
+  `banco` varchar(100) DEFAULT NULL,
+  `agencia` varchar(20) DEFAULT NULL,
+  `numero_conta` varchar(30) DEFAULT NULL,
+  `saldo_inicial` decimal(15,2) NOT NULL DEFAULT 0.00,
+  `saldo_atual` decimal(15,2) NOT NULL DEFAULT 0.00,
+  `moeda` varchar(3) NOT NULL DEFAULT 'BRL',
+  `status` enum('ativa','inativa') DEFAULT 'ativa',
+  `cor` varchar(7) DEFAULT '#6a0dad',
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `id_usuario` (`id_usuario`),
+  CONSTRAINT `contas_bancarias_ibfk_1` FOREIGN KEY (`id_usuario`) REFERENCES `usuarios` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Tabela de transferências entre contas
+--
+CREATE TABLE IF NOT EXISTS `transferencias` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `id_usuario` int(11) NOT NULL,
+  `conta_origem` int(11) NOT NULL,
+  `conta_destino` int(11) NOT NULL,
+  `valor` decimal(15,2) NOT NULL,
+  `descricao` varchar(255) DEFAULT NULL,
+  `data_transferencia` date NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `id_usuario` (`id_usuario`),
+  KEY `conta_origem` (`conta_origem`),
+  KEY `conta_destino` (`conta_destino`),
+  CONSTRAINT `transferencias_ibfk_1` FOREIGN KEY (`id_usuario`) REFERENCES `usuarios` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `transferencias_ibfk_2` FOREIGN KEY (`conta_origem`) REFERENCES `contas_bancarias` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `transferencias_ibfk_3` FOREIGN KEY (`conta_destino`) REFERENCES `contas_bancarias` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
 -- Restrições para tabelas `contas_recorrentes`
 --
 ALTER TABLE `contas_recorrentes`
@@ -600,6 +644,102 @@ ALTER TABLE `orcamentos`
 --
 ALTER TABLE `relatorios_personalizados`
   ADD CONSTRAINT `relatorios_personalizados_ibfk_1` FOREIGN KEY (`id_usuario`) REFERENCES `usuarios` (`id`) ON DELETE CASCADE;
+
+-- --------------------------------------------------------
+
+--
+-- Estrutura para tabela `planejamento_cenarios`
+--
+
+CREATE TABLE `planejamento_cenarios` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `id_usuario` int(11) NOT NULL,
+  `nome` varchar(100) NOT NULL,
+  `descricao` text DEFAULT NULL,
+  `tipo` enum('receita','despesa','investimento','divida') NOT NULL,
+  `valor_base` decimal(15,2) NOT NULL,
+  `percentual_variacao` decimal(5,2) NOT NULL,
+  `resultado_calculado` decimal(15,2) NOT NULL,
+  `data_criacao` datetime DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `id_usuario` (`id_usuario`),
+  CONSTRAINT `planejamento_cenarios_ibfk_1` FOREIGN KEY (`id_usuario`) REFERENCES `usuarios` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Estrutura para tabela `importacoes`
+--
+
+CREATE TABLE `importacoes` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `id_usuario` int(11) NOT NULL,
+  `nome_arquivo` varchar(255) NOT NULL,
+  `tipo_arquivo` enum('ofx','csv') NOT NULL,
+  `total_lancamentos` int(11) DEFAULT 0,
+  `data_importacao` datetime DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `id_usuario` (`id_usuario`),
+  CONSTRAINT `importacoes_ibfk_1` FOREIGN KEY (`id_usuario`) REFERENCES `usuarios` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Estrutura para tabela `contas_pagar`
+--
+
+CREATE TABLE `contas_pagar` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `id_usuario` int(11) NOT NULL,
+  `descricao` varchar(200) NOT NULL,
+  `valor` decimal(15,2) NOT NULL,
+  `vencimento` date NOT NULL,
+  `data_pagamento` date DEFAULT NULL,
+  `status` enum('pendente','pago','atrasado') DEFAULT 'pendente',
+  `id_categoria` int(11) DEFAULT NULL,
+  `fornecedor` varchar(100) DEFAULT NULL,
+  `num_documento` varchar(50) DEFAULT NULL,
+  `observacoes` text DEFAULT NULL,
+  `data_criacao` datetime DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `id_usuario` (`id_usuario`),
+  KEY `id_categoria` (`id_categoria`),
+  KEY `vencimento` (`vencimento`),
+  KEY `status` (`status`),
+  CONSTRAINT `contas_pagar_ibfk_1` FOREIGN KEY (`id_usuario`) REFERENCES `usuarios` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `contas_pagar_ibfk_2` FOREIGN KEY (`id_categoria`) REFERENCES `categorias` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Estrutura para tabela `contas_receber`
+--
+
+CREATE TABLE `contas_receber` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `id_usuario` int(11) NOT NULL,
+  `descricao` varchar(200) NOT NULL,
+  `valor` decimal(15,2) NOT NULL,
+  `vencimento` date NOT NULL,
+  `data_recebimento` date DEFAULT NULL,
+  `status` enum('pendente','recebido','atrasado') DEFAULT 'pendente',
+  `id_categoria` int(11) DEFAULT NULL,
+  `cliente` varchar(100) DEFAULT NULL,
+  `num_documento` varchar(50) DEFAULT NULL,
+  `observacoes` text DEFAULT NULL,
+  `data_criacao` datetime DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `id_usuario` (`id_usuario`),
+  KEY `id_categoria` (`id_categoria`),
+  KEY `vencimento` (`vencimento`),
+  KEY `status` (`status`),
+  CONSTRAINT `contas_receber_ibfk_1` FOREIGN KEY (`id_usuario`) REFERENCES `usuarios` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `contas_receber_ibfk_2` FOREIGN KEY (`id_categoria`) REFERENCES `categorias` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

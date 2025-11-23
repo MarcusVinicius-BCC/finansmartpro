@@ -297,3 +297,129 @@
         margin-left: 0;
     }
 }
+
+/* Seletor de Moeda */
+.currency-selector {
+    position: relative;
+    margin-top: 1rem;
+}
+
+.currency-current {
+    width: 100%;
+    background: rgba(255, 255, 255, 0.1);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    color: #fff;
+    padding: 0.6rem 0.75rem;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+}
+
+.currency-current:hover {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 215, 0, 0.5);
+    transform: translateY(-2px);
+}
+
+.currency-current .fa-exchange-alt {
+    color: #ffd700;
+}
+
+.currency-current .currency-symbol {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #ffd700;
+}
+
+.currency-current .currency-code {
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+.currency-current .fa-chevron-down {
+    font-size: 0.75rem;
+    transition: transform 0.3s ease;
+}
+
+.currency-dropdown {
+    position: absolute;
+    top: calc(100% + 0.5rem);
+    left: 0;
+    right: 0;
+    background: rgba(40, 20, 60, 0.98);
+    border: 2px solid rgba(255, 215, 0, 0.3);
+    border-radius: 0.5rem;
+    padding: 0.4rem;
+    display: none;
+    flex-direction: column;
+    gap: 0.3rem;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    z-index: 1000;
+    backdrop-filter: blur(10px);
+}
+
+.currency-dropdown.show {
+    display: flex;
+    animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.currency-option {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.9);
+    padding: 0.6rem 0.75rem;
+    border-radius: 0.4rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    font-size: 0.85rem;
+}
+
+.currency-option:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 215, 0, 0.4);
+    transform: translateX(4px);
+}
+
+.currency-option.active {
+    background: linear-gradient(135deg, rgba(255, 215, 0, 0.2) 0%, rgba(255, 237, 78, 0.2) 100%);
+    border-color: #ffd700;
+    color: #ffd700;
+}
+
+.currency-option .currency-symbol {
+    font-size: 1.1rem;
+    font-weight: 700;
+    width: 1.5rem;
+    text-align: center;
+}
+
+.currency-option .currency-code {
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    min-width: 2.5rem;
+}
+
+.currency-option .currency-name {
+    font-size: 0.75rem;
+    opacity: 0.7;
+    margin-left: auto;
+}

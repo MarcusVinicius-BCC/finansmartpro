@@ -272,6 +272,8 @@ $stmt = $pdo->prepare('SELECT * FROM categorias WHERE id_usuario = ? OR id_usuar
 $stmt->execute([$user_id]);
 $cats = $stmt->fetchAll();
 require 'includes/header.php';
+// Disponibilizar utilitários de moeda para formatação
+require_once 'includes/currency.php';
 ?>
 <div class="container-fluid">
   <div class="card p-3 mb-3">
@@ -328,11 +330,11 @@ require 'includes/header.php';
         <div class="row g-3 mt-1">
             <div class="col-md-2">
                 <label class="form-label small">Valor Mínimo</label>
-                <input type="number" step="0.01" name="filter_min_value" class="form-control" placeholder="0.00" value="<?= htmlspecialchars($filter_min_value) ?>">
+                <input type="text" name="filter_min_value" class="form-control money-input" placeholder="0,00" value="<?= htmlspecialchars($filter_min_value ? number_format($filter_min_value, 2, ',', '.') : '') ?>">
             </div>
             <div class="col-md-2">
                 <label class="form-label small">Valor Máximo</label>
-                <input type="number" step="0.01" name="filter_max_value" class="form-control" placeholder="0.00" value="<?= htmlspecialchars($filter_max_value) ?>">
+                <input type="text" name="filter_max_value" class="form-control money-input" placeholder="0,00" value="<?= htmlspecialchars($filter_max_value ? number_format($filter_max_value, 2, ',', '.') : '') ?>">
             </div>
             <div class="col-md-8 d-flex align-items-end justify-content-end gap-2">
                 <button type="submit" class="btn btn-primary">
@@ -355,25 +357,25 @@ require 'includes/header.php';
     <div class="col-md-4">
         <div class="card bg-success text-white">
             <div class="card-body py-2">
-                <small>Total Receitas (filtrado)</small>
-                <h5 class="mb-0"><?= number_format($total_receitas, 2, ',', '.') ?></h5>
-            </div>
+            <small>Total Receitas (filtrado)</small>
+            <h5 class="mb-0"><?= format_currency($total_receitas, $filter_currency ?: ($user_base ?? 'BRL')) ?></h5>
+          </div>
         </div>
     </div>
     <div class="col-md-4">
         <div class="card bg-danger text-white">
             <div class="card-body py-2">
-                <small>Total Despesas (filtrado)</small>
-                <h5 class="mb-0"><?= number_format($total_despesas, 2, ',', '.') ?></h5>
-            </div>
+            <small>Total Despesas (filtrado)</small>
+            <h5 class="mb-0"><?= format_currency($total_despesas, $filter_currency ?: ($user_base ?? 'BRL')) ?></h5>
+          </div>
         </div>
     </div>
     <div class="col-md-4">
         <div class="card bg-info text-white">
             <div class="card-body py-2">
-                <small>Saldo (filtrado)</small>
-                <h5 class="mb-0"><?= number_format($total_receitas - $total_despesas, 2, ',', '.') ?></h5>
-            </div>
+            <small>Saldo (filtrado)</small>
+            <h5 class="mb-0"><?= format_currency($total_receitas - $total_despesas, $filter_currency ?: ($user_base ?? 'BRL')) ?></h5>
+          </div>
         </div>
     </div>
   </div>
@@ -384,11 +386,11 @@ require 'includes/header.php';
       <thead><tr><th>Data</th><th>Descrição</th><th>Categoria</th><th>Valor</th><th>Ações</th></tr></thead>
       <tbody>
         <?php foreach($lancamentos as $l): ?>
-          <tr>
+            <tr>
             <td><?= $l['data'] ?></td>
             <td><?= htmlspecialchars($l['descricao']) ?></td>
             <td><?= htmlspecialchars($l['categoria_nome']) ?></td>
-            <td class="<?= $l['tipo']=='receita'?'text-success':'text-danger' ?>"><?= $l['moeda'] ?> <?= number_format($l['valor'],2,',','.') ?></td>
+            <td class="<?= $l['tipo']=='receita'?'text-success':'text-danger' ?>"><?= $l['tipo']=='receita' ? '+' : '-' ?> <?= format_currency($l['valor'], $l['moeda']) ?></td>
             <td class="text-end">
               <button class="btn btn-sm btn-info" onclick="openEdit('<?= htmlspecialchars(json_encode($l), ENT_QUOTES) ?>')"><i class="fas fa-edit"></i></button>
               <form method="post" style="display:inline">

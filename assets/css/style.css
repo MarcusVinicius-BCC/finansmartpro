@@ -43,6 +43,43 @@ body,
     box-shadow: 0 12px 24px rgba(106, 13, 173, 0.25);
 }
 
+/* Cards clicáveis */
+.card-clickable {
+    cursor: pointer;
+    transition: all 0.3s ease-in-out;
+}
+
+.card-clickable:hover {
+    transform: translateY(-8px) scale(1.02);
+    box-shadow: 0 16px 32px rgba(0, 0, 0, 0.3);
+}
+
+.card-clickable:active {
+    transform: translateY(-4px) scale(1.01);
+}
+
+/* Melhorias de acessibilidade */
+a.text-decoration-none:focus {
+    outline: 2px solid #ffd700;
+    outline-offset: 2px;
+}
+
+/* Garantir contraste mínimo em badges */
+.badge {
+    font-weight: 600;
+    padding: 0.35em 0.65em;
+}
+
+/* Melhorar foco em elementos interativos */
+button:focus,
+select:focus,
+input:focus,
+textarea:focus,
+a:focus {
+    outline: 2px solid #667eea;
+    outline-offset: 2px;
+}
+
 .btn-primary {
     background-color: var(--primary-color);
     border-color: var(--primary-color);
@@ -110,4 +147,19 @@ body,
 
 .bg-danger {
     background-color: var(--danger-color) !important;
+}
+
+/* Reduzir fonte dos inputs de data para evitar sobreposição no calendário */
+input[type="date"] {
+    font-size: 0.875rem;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator {
+    font-size: 0.875rem;
+}
+
+/* Para campos de data menores em filtros */
+.col-md-2 input[type="date"],
+.col-md-3 input[type="date"] {
+    font-size: 0.8rem;
 }

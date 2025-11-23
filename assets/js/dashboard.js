@@ -8,11 +8,12 @@ function updateExchangeRates() {
                 let html = '<div class="rate-grid">';
                 ['USD', 'EUR', 'GBP'].forEach(currency => {
                     if (data[currency]) {
+                        const val = parseFloat(data[currency]);
                         html += `
-                            <div class="rate-item">
-                                <span class="currency">${currency}/BRL</span>
-                                <span class="value">${parseFloat(data[currency]).toFixed(2)}</span>
-                            </div>`;
+                                    <div class="rate-item">
+                                        <span class="currency">${currency}/BRL</span>
+                                        <span class="value">${formatCurrency(val, 'BRL')}</span>
+                                    </div>`;
                     }
                 });
                 html += '</div>';
@@ -30,7 +31,7 @@ function handleQuickTransaction(event) {
 
     // Adicionar action ao FormData
     formData.append('action', 'add');
-    
+
     fetch('lancamentos.php', {
         method: 'POST',
         body: formData,
@@ -63,13 +64,24 @@ function updateDashboardSummary() {
         .catch(error => console.error('Error updating summary:', error));
 }
 
-// Format currency values
-function formatCurrency(value) {
-    return new Intl.NumberFormat('pt-BR', {
-        style: 'currency',
-        currency: 'BRL'
-    }).format(value);
+// Format currency values (global)
+function formatCurrency(value, currency) {
+    // Allow passing explicit currency or fallback to user base
+    const userBase = (window.FINANSMART && window.FINANSMART.userBase) ? window.FINANSMART.userBase : 'BRL';
+    const curr = currency || userBase || 'BRL';
+    try {
+        return new Intl.NumberFormat(curr === 'BRL' ? 'pt-BR' : 'en-US', {
+            style: 'currency',
+            currency: curr
+        }).format(Number(value));
+    } catch (e) {
+        // Fallback simple formatting
+        return (Number(value) || 0).toFixed(2) + ' ' + curr;
+    }
 }
+
+// Expose globally for other modules (analytics.js uses formatCurrency)
+window.formatCurrency = formatCurrency;
 
 // Initialize dashboard features
 document.addEventListener('DOMContentLoaded', function () {

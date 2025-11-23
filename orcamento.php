@@ -157,7 +157,7 @@ require_once 'includes/header.php';
             <div class="card bg-primary text-white">
                 <div class="card-body">
                     <h6 class="text-white-50">Total Orçado</h6>
-                    <h4><?= number_format($total_limite, 2, ',', '.') ?> <?= $moeda ?></h4>
+                    <h4><?= format_currency($total_limite, $moeda) ?></h4>
                 </div>
             </div>
         </div>
@@ -165,7 +165,7 @@ require_once 'includes/header.php';
             <div class="card bg-<?= $total_progresso >= 100 ? 'danger' : ($total_progresso >= 80 ? 'warning' : 'success') ?> text-white">
                 <div class="card-body">
                     <h6 class="text-white-50">Total Gasto</h6>
-                    <h4><?= number_format($total_gasto, 2, ',', '.') ?> <?= $moeda ?></h4>
+                    <h4><?= format_currency($total_gasto, $moeda) ?></h4>
                 </div>
             </div>
         </div>
@@ -173,7 +173,7 @@ require_once 'includes/header.php';
             <div class="card bg-info text-white">
                 <div class="card-body">
                     <h6 class="text-white-50">Disponível</h6>
-                    <h4><?= number_format($total_restante, 2, ',', '.') ?> <?= $moeda ?></h4>
+                    <h4><?= format_currency($total_restante, $moeda) ?></h4>
                 </div>
             </div>
         </div>
@@ -237,7 +237,7 @@ require_once 'includes/header.php';
                                     <div class="border rounded p-2 text-center">
                                         <div class="text-muted">Gasto</div>
                                         <div class="fw-bold text-danger">
-                                            <?= $moeda ?> <?= number_format($orc['gasto_atual'], 2, ',', '.') ?>
+                                            <?= format_currency($orc['gasto_atual'], $moeda) ?>
                                         </div>
                                     </div>
                                 </div>
@@ -245,7 +245,7 @@ require_once 'includes/header.php';
                                     <div class="border rounded p-2 text-center">
                                         <div class="text-muted">Limite</div>
                                         <div class="fw-bold text-primary">
-                                            <?= $moeda ?> <?= number_format($orc['valor_limite'], 2, ',', '.') ?>
+                                            <?= format_currency($orc['valor_limite'], $moeda) ?>
                                         </div>
                                     </div>
                                 </div>
@@ -253,7 +253,7 @@ require_once 'includes/header.php';
                                     <div class="border rounded p-2 text-center bg-light">
                                         <div class="text-muted">Disponível</div>
                                         <div class="fw-bold text-<?= $orc['restante'] >= 0 ? 'success' : 'danger' ?>">
-                                            <?= $moeda ?> <?= number_format($orc['restante'], 2, ',', '.') ?>
+                                            <?= format_currency($orc['restante'], $moeda) ?>
                                         </div>
                                     </div>
                                 </div>
@@ -301,7 +301,7 @@ require_once 'includes/header.php';
                         <label for="valor_limite" class="form-label">Valor Limite</label>
                         <div class="input-group">
                             <span class="input-group-text"><?= $moeda ?></span>
-                            <input type="number" step="0.01" class="form-control" id="valor_limite" name="valor_limite" required min="0.01">
+                            <input type="text" class="form-control money-input" id="valor_limite" name="valor_limite" required placeholder="0,00">
                         </div>
                         <div class="form-text">Defina o valor máximo que deseja gastar nesta categoria durante o mês.</div>
                     </div>
@@ -340,7 +340,7 @@ require_once 'includes/header.php';
                         <label for="edit_valor_limite" class="form-label">Valor Limite</label>
                         <div class="input-group">
                             <span class="input-group-text"><?= $moeda ?></span>
-                            <input type="number" step="0.01" class="form-control" id="edit_valor_limite" name="valor_limite" required min="0.01">
+                            <input type="text" class="form-control money-input" id="edit_valor_limite" name="valor_limite" required placeholder="0,00">
                         </div>
                     </div>
                 </div>
@@ -379,10 +379,57 @@ require_once 'includes/header.php';
 </div>
 
 <script>
+// Formatação de valor monetário
+function formatMoney(input) {
+  let value = input.value.replace(/\D/g, '');
+  value = (parseInt(value) / 100).toFixed(2);
+  value = value.replace('.', ',');
+  value = value.replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1.');
+  input.value = value;
+}
+
+function unformatMoney(value) {
+  return value.replace(/\./g, '').replace(',', '.');
+}
+
+document.querySelectorAll('.money-input').forEach(input => {
+  input.addEventListener('input', function() {
+    formatMoney(this);
+  });
+  
+  input.addEventListener('blur', function() {
+    if (this.value === '' || this.value === '0,00') {
+      this.value = '0,00';
+    }
+  });
+});
+
+// Interceptar submissão dos formulários para converter valor
+document.querySelectorAll('form').forEach(form => {
+  form.addEventListener('submit', function(e) {
+    const valorInputs = this.querySelectorAll('.money-input');
+    valorInputs.forEach(input => {
+      if (input.value && input.name) {
+        const originalName = input.name;
+        const hiddenInput = document.createElement('input');
+        hiddenInput.type = 'hidden';
+        hiddenInput.name = originalName;
+        hiddenInput.value = unformatMoney(input.value);
+        this.appendChild(hiddenInput);
+        input.removeAttribute('name');
+      }
+    });
+  });
+});
+
 function editarOrcamento(id, categoriaId, valorLimite) {
     document.getElementById('edit_id').value = id;
     document.getElementById('edit_id_categoria').value = categoriaId;
-    document.getElementById('edit_valor_limite').value = valorLimite;
+    
+    // Formatar valor para exibição
+    const valorFormatado = parseFloat(valorLimite).toFixed(2).replace('.', ',').replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1.');
+    document.getElementById('edit_valor_limite').value = valorFormatado;
+    
     new bootstrap.Modal(document.getElementById('editarOrcamentoModal')).show();
 }
 
