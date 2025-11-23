@@ -10,6 +10,8 @@ $stmt = $pdo->prepare('SELECT moeda_base FROM usuarios WHERE id = ?');
 $stmt->execute([$user_id]);
 $userrow = $stmt->fetch();
 $base = $userrow['moeda_base'] ?? 'BRL';
+// DEBUG - REMOVER DEPOIS
+error_log("DEBUG: Moeda base = " . $base);
 
 // Totais por moeda
 $stmt = $pdo->prepare('SELECT 
@@ -81,9 +83,42 @@ $stmt = $pdo->prepare('SELECT
     WHERE l.id_usuario = ? 
     AND l.tipo = \'despesa\' 
     AND l.data >= DATE_SUB(CURRENT_DATE, INTERVAL 30 DAY)
-    GROUP BY c.nome');
+    GROUP BY c.nome
+    ORDER BY total DESC');
 $stmt->execute([$user_id]);
 $expenses_by_category = $stmt->fetchAll();
+
+// Cálculo de tendências (comparação mês atual vs anterior)
+$current_month = date('Y-m');
+$previous_month = date('Y-m', strtotime('-1 month'));
+
+$trend_data = [
+    'current' => ['receitas' => 0, 'despesas' => 0],
+    'previous' => ['receitas' => 0, 'despesas' => 0]
+];
+
+if(isset($monthly_data[$current_month])) {
+    $trend_data['current'] = $monthly_data[$current_month];
+}
+if(isset($monthly_data[$previous_month])) {
+    $trend_data['previous'] = $monthly_data[$previous_month];
+}
+
+$receitas_trend = 0;
+$despesas_trend = 0;
+if($trend_data['previous']['receitas'] > 0) {
+    $receitas_trend = (($trend_data['current']['receitas'] - $trend_data['previous']['receitas']) / $trend_data['previous']['receitas']) * 100;
+}
+if($trend_data['previous']['despesas'] > 0) {
+    $despesas_trend = (($trend_data['current']['despesas'] - $trend_data['previous']['despesas']) / $trend_data['previous']['despesas']) * 100;
+}
+
+$saldo_current = $trend_data['current']['receitas'] - $trend_data['current']['despesas'];
+$saldo_previous = $trend_data['previous']['receitas'] - $trend_data['previous']['despesas'];
+$saldo_trend = 0;
+if($saldo_previous != 0) {
+    $saldo_trend = (($saldo_current - $saldo_previous) / abs($saldo_previous)) * 100;
+}
 
 // Metas financeiras
 try {
@@ -122,45 +157,133 @@ require 'includes/header.php';
             <h4 class="mb-3">Resumo Financeiro</h4>
         </div>
         <div class="col-12 col-md-6 col-xl-3 mb-4">
-            <div class="card bg-gradient-primary text-white h-100 total-balance-card">
+            <div class="card text-white h-100" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
                 <div class="card-body">
                     <div class="d-flex justify-content-between">
                         <div>
-                            <h6 class="text-white-50">Patrimônio Total</h6>
-                            <h3 class="mb-0"><?= number_format($consolidated, 2, ',', '.') ?> <?= $base ?></h3>
+                            <h6 class="text-white-75 mb-1">Patrimônio Total</h6>
+                            <h3 class="mb-0 fw-bold"><?= number_format($consolidated, 2, ',', '.') ?> <?= $base ?></h3>
                         </div>
-                        <div class="rounded-circle bg-white bg-opacity-25 p-3">
-                            <i class="fas fa-wallet fa-2x text-white"></i>
+                        <div class="rounded-circle bg-white p-3 d-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
+                            <span class="fw-bold" style="font-size: 1.5rem; color: #ffd700;"><?= $base === 'BRL' ? 'R$' : ($base === 'USD' ? '$' : '€') ?></span>
                         </div>
                     </div>
                     <div class="mt-3">
-                        <span class="text-white-50">Atualizado em tempo real</span>
+                        <?php if($saldo_trend != 0): ?>
+                            <span class="badge bg-light text-dark">
+                                <i class="fas fa-<?= $saldo_trend > 0 ? 'arrow-up' : 'arrow-down' ?>"></i>
+                                <?= number_format(abs($saldo_trend), 1) ?>% vs mês anterior
+                            </span>
+                        <?php else: ?>
+                            <span class="badge bg-light text-dark">Atualizado em tempo real</span>
+                        <?php endif; ?>
                     </div>
                 </div>
             </div>
         </div>
         
-        <?php foreach($breakdown as $moeda => $dados): ?>
         <div class="col-12 col-md-6 col-xl-3 mb-4">
-            <div class="card h-100">
+            <div class="card text-white h-100" style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);">
                 <div class="card-body">
                     <div class="d-flex justify-content-between">
                         <div>
-                            <h6 class="text-muted">Saldo em <?= $moeda ?></h6>
-                            <h4 class="mb-2"><?= number_format($dados['saldo'], 2, ',', '.') ?> <?= $moeda ?></h4>
-                            <div class="d-flex align-items-center">
-                                <span class="text-muted me-2">Receitas:</span>
-                                <span class="text-success"><?= number_format($dados['receita_total'], 2, ',', '.') ?></span>
-                            </div>
-                            <div class="d-flex align-items-center">
-                                <span class="text-muted me-2">Despesas:</span>
-                                <span class="text-danger"><?= number_format($dados['despesa_total'], 2, ',', '.') ?></span>
-                            </div>
+                            <h6 class="text-white-75 mb-1">Receitas do Mês</h6>
+                            <h3 class="mb-0 fw-bold"><?= number_format($trend_data['current']['receitas'], 2, ',', '.') ?> <?= $base ?></h3>
                         </div>
+                        <div class="rounded-circle bg-white p-3 d-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
+                            <span class="fw-bold" style="font-size: 1.5rem; color: #11998e;"><?= $base === 'BRL' ? 'R$' : ($base === 'USD' ? '$' : '€') ?></span>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <?php if($receitas_trend != 0): ?>
+                            <span class="badge bg-light text-dark">
+                                <i class="fas fa-<?= $receitas_trend > 0 ? 'arrow-up' : 'arrow-down' ?>"></i>
+                                <?= number_format(abs($receitas_trend), 1) ?>% vs mês anterior
+                            </span>
+                        <?php else: ?>
+                            <span class="badge bg-light text-dark">Sem dados do mês anterior</span>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-12 col-md-6 col-xl-3 mb-4">
+            <div class="card text-white h-100" style="background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
                         <div>
-                            <div class="rounded-circle bg-light p-3">
-                                <i class="fas fa-money-bill-wave fa-2x text-primary"></i>
-                            </div>
+                            <h6 class="text-white-75 mb-1">Despesas do Mês</h6>
+                            <h3 class="mb-0 fw-bold"><?= number_format($trend_data['current']['despesas'], 2, ',', '.') ?> <?= $base ?></h3>
+                        </div>
+                        <div class="rounded-circle bg-white p-3 d-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
+                            <span class="fw-bold" style="font-size: 1.5rem; color: #eb3349;"><?= $base === 'BRL' ? 'R$' : ($base === 'USD' ? '$' : '€') ?></span>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <?php if($despesas_trend != 0): ?>
+                            <span class="badge bg-light text-dark">
+                                <i class="fas fa-<?= $despesas_trend > 0 ? 'arrow-up' : 'arrow-down' ?>"></i>
+                                <?= number_format(abs($despesas_trend), 1) ?>% vs mês anterior
+                            </span>
+                        <?php else: ?>
+                            <span class="badge bg-light text-dark">Sem dados do mês anterior</span>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-12 col-md-6 col-xl-3 mb-4">
+            <div class="card text-white h-100" style="background: linear-gradient(135deg, #2193b0 0%, #6dd5ed 100%);">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="text-white-75 mb-1">Saldo do Mês</h6>
+                            <h3 class="mb-0 fw-bold"><?= number_format($saldo_current, 2, ',', '.') ?> <?= $base ?></h3>
+                        </div>
+                        <div class="rounded-circle bg-white p-3 d-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
+                            <span class="fw-bold" style="font-size: 1.5rem; color: #2193b0;"><?= $base === 'BRL' ? 'R$' : ($base === 'USD' ? '$' : '€') ?></span>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <span class="badge bg-light text-dark">
+                            Mês atual: <?= date('m/Y') ?>
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Breakdown por moeda -->
+    <?php if(count($breakdown) > 0): ?>
+    <div class="row mb-4">
+        <div class="col-12">
+            <h5 class="mb-3">Detalhamento por Moeda</h5>
+        </div>
+        <?php foreach($breakdown as $moeda => $dados): ?>
+        <div class="col-12 col-md-6 col-lg-4 mb-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div>
+                            <h6 class="text-muted mb-0">Saldo em <?= $moeda ?></h6>
+                            <h4 class="mb-0 fw-bold"><?= number_format($dados['saldo'], 2, ',', '.') ?> <?= $moeda ?></h4>
+                        </div>
+                        <div class="rounded-circle d-flex align-items-center justify-content-center" 
+                             style="width: 50px; height: 50px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                            <i class="fas fa-coins fa-lg text-white"></i>
+                        </div>
+                    </div>
+                    <div class="small">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="text-muted">Receitas:</span>
+                            <span class="text-success fw-bold"><?= number_format($dados['receita_total'], 2, ',', '.') ?></span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted">Despesas:</span>
+                            <span class="text-danger fw-bold"><?= number_format($dados['despesa_total'], 2, ',', '.') ?></span>
                         </div>
                     </div>
                 </div>
@@ -168,6 +291,7 @@ require 'includes/header.php';
         </div>
         <?php endforeach; ?>
     </div>
+    <?php endif; ?>
     <!-- Gráficos e Análises -->
     <div class="row mb-4">
         <div class="col-12">
@@ -176,7 +300,7 @@ require 'includes/header.php';
         <div class="col-12 col-lg-8 mb-4">
             <div class="card h-100">
                 <div class="card-body">
-                    <h5 class="card-title">Fluxo de Caixa Mensal</h5>
+                    <h5 class="card-title">Evolução Mensal (Últimos 6 Meses)</h5>
                     <canvas id="cashFlowChart" height="300"></canvas>
                 </div>
             </div>
@@ -184,8 +308,59 @@ require 'includes/header.php';
         <div class="col-12 col-lg-4 mb-4">
             <div class="card h-100">
                 <div class="card-body">
-                    <h5 class="card-title">Distribuição de Despesas</h5>
+                    <h5 class="card-title">Despesas por Categoria</h5>
                     <canvas id="expensesChart" height="300"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Gráfico de Comparação Mensal -->
+    <div class="row mb-4">
+        <div class="col-12 col-lg-6 mb-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Comparação Receitas vs Despesas (Últimos 6 Meses)</h5>
+                    <canvas id="comparisonChart" height="250"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-lg-6 mb-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Top 5 Categorias de Despesa (30 Dias)</h5>
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Categoria</th>
+                                    <th class="text-end">Valor</th>
+                                    <th class="text-end">%</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php 
+                                $total_expenses = array_sum(array_column($expenses_by_category, 'total'));
+                                $top_categories = array_slice($expenses_by_category, 0, 5);
+                                foreach($top_categories as $cat): 
+                                    $percentage = $total_expenses > 0 ? ($cat['total'] / $total_expenses) * 100 : 0;
+                                ?>
+                                <tr>
+                                    <td><?= htmlspecialchars($cat['categoria']) ?></td>
+                                    <td class="text-end"><?= number_format($cat['total'], 2, ',', '.') ?></td>
+                                    <td class="text-end">
+                                        <span class="badge bg-primary"><?= number_format($percentage, 1) ?>%</span>
+                                    </td>
+                                </tr>
+                                <?php endforeach; ?>
+                                <?php if(empty($top_categories)): ?>
+                                <tr>
+                                    <td colspan="3" class="text-center text-muted">Nenhuma despesa nos últimos 30 dias</td>
+                                </tr>
+                                <?php endif; ?>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
@@ -506,7 +681,9 @@ new Chart(expensesCtx, {
                 'rgba(255, 206, 86, 0.8)',
                 'rgba(75, 192, 192, 0.8)',
                 'rgba(153, 102, 255, 0.8)',
-                'rgba(255, 159, 64, 0.8)'
+                'rgba(255, 159, 64, 0.8)',
+                'rgba(106, 13, 173, 0.8)',
+                'rgba(255, 215, 0, 0.8)'
             ],
             borderWidth: 1
         }]
@@ -516,6 +693,13 @@ new Chart(expensesCtx, {
         plugins: {
             legend: {
                 position: 'bottom',
+                labels: {
+                    boxWidth: 12,
+                    padding: 10,
+                    font: {
+                        size: 11
+                    }
+                }
             },
             tooltip: {
                 callbacks: {
@@ -533,6 +717,77 @@ new Chart(expensesCtx, {
             }
         },
         cutout: '60%'
+    }
+});
+
+// Gráfico de Comparação (Barras)
+const comparisonCtx = document.getElementById('comparisonChart').getContext('2d');
+new Chart(comparisonCtx, {
+    type: 'bar',
+    data: {
+        labels: months.map(m => {
+            const [year, month] = m.split('-');
+            return `${month}/${year}`;
+        }),
+        datasets: [
+            {
+                label: 'Receitas',
+                data: receitas,
+                backgroundColor: 'rgba(40, 167, 69, 0.7)',
+                borderColor: 'rgba(40, 167, 69, 1)',
+                borderWidth: 1
+            },
+            {
+                label: 'Despesas',
+                data: despesas,
+                backgroundColor: 'rgba(220, 53, 69, 0.7)',
+                borderColor: 'rgba(220, 53, 69, 1)',
+                borderWidth: 1
+            }
+        ]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: {
+                position: 'top',
+            },
+            tooltip: {
+                mode: 'index',
+                intersect: false,
+                callbacks: {
+                    label: function(context) {
+                        let label = context.dataset.label || '';
+                        if (label) {
+                            label += ': ';
+                        }
+                        label += new Intl.NumberFormat('pt-BR', {
+                            style: 'currency',
+                            currency: '<?= $base ?>'
+                        }).format(context.raw);
+                        return label;
+                    }
+                }
+            }
+        },
+        scales: {
+            x: {
+                grid: {
+                    display: false
+                }
+            },
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    callback: function(value) {
+                        return new Intl.NumberFormat('pt-BR', {
+                            style: 'currency',
+                            currency: '<?= $base ?>'
+                        }).format(value);
+                    }
+                }
+            }
+        }
     }
 });
 </script>

@@ -37,6 +37,7 @@ if (session_status() == PHP_SESSION_NONE) session_start();
     <?php endif; ?>
     <?php if(isset($_SESSION['user_id']) && $current_page !== 'index.php'): ?>
         <script src="assets/js/sidebar.js" defer></script>
+        <script src="assets/js/notifications.js" defer></script>
     <?php endif; ?>
     <script src="assets/js/main.js" defer></script>
 
@@ -66,15 +67,21 @@ if (session_status() == PHP_SESSION_NONE) session_start();
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link <?= $current_page === 'relatorios.php' ? 'active' : '' ?>" href="relatorios.php">
-                            <i class="fas fa-file-alt"></i>
-                            <span>Relatórios</span>
+                        <a class="nav-link <?= $current_page === 'orcamento.php' ? 'active' : '' ?>" href="orcamento.php">
+                            <i class="fas fa-wallet"></i>
+                            <span>Orçamentos</span>
                         </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link <?= $current_page === 'metas.php' ? 'active' : '' ?>" href="metas.php">
                             <i class="fas fa-bullseye"></i>
                             <span>Metas</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link <?= $current_page === 'relatorios.php' ? 'active' : '' ?>" href="relatorios.php">
+                            <i class="fas fa-file-alt"></i>
+                            <span>Relatórios</span>
                         </a>
                     </li>
                     <li class="nav-item">
@@ -92,11 +99,31 @@ if (session_status() == PHP_SESSION_NONE) session_start();
                         <i class="fas fa-user-circle fa-2x"></i>
                     </div>
                     <div class="user-details">
-                        <div class="d-flex align-items-center justify-content-between gap-3">
+                        <div class="d-flex align-items-center justify-content-between gap-2">
                             <h6 class="user-name mb-0"><?php echo htmlspecialchars($_SESSION['user_name']); ?></h6>
-                            <a href="logout.php" class="btn-sair">
-                                <i class="fas fa-sign-out-alt"></i> Sair
-                            </a>
+                            <div class="d-flex gap-2">
+                                <!-- Sino de Notificações -->
+                                <div class="dropdown">
+                                    <button class="btn btn-notification p-1" type="button" id="notificationDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="fas fa-bell"></i>
+                                        <span class="notification-badge" id="notificationCount" style="display: none;">0</span>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end notification-dropdown" aria-labelledby="notificationDropdown" id="notificationList">
+                                        <li class="dropdown-header d-flex justify-content-between align-items-center">
+                                            <span>Notificações</span>
+                                            <button class="btn btn-sm btn-link p-0" onclick="markAllRead()" style="font-size: 0.75rem;">Marcar todas como lidas</button>
+                                        </li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li class="text-center py-3 text-muted" id="emptyNotifications">
+                                            <i class="fas fa-bell-slash"></i><br>
+                                            Sem notificações
+                                        </li>
+                                    </ul>
+                                </div>
+                                <a href="logout.php" class="btn-sair">
+                                    <i class="fas fa-sign-out-alt"></i> Sair
+                                </a>
+                            </div>
                         </div>
                     </div>
                 </div>

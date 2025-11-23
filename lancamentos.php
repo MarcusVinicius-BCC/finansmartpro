@@ -12,6 +12,86 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && 
               strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest';
     
+    // Exportar para CSV
+    if ($action === 'export_csv') {
+        $search = $_POST['search'] ?? '';
+        $filter_type = $_POST['filter_type'] ?? '';
+        $filter_category = $_POST['filter_category'] ?? '';
+        $filter_currency = $_POST['filter_currency'] ?? '';
+        $filter_date_start = $_POST['filter_date_start'] ?? '';
+        $filter_date_end = $_POST['filter_date_end'] ?? '';
+        $filter_min_value = $_POST['filter_min_value'] ?? '';
+        $filter_max_value = $_POST['filter_max_value'] ?? '';
+        
+        $sql = 'SELECT l.data, l.tipo, l.descricao, c.nome as categoria, l.valor, l.moeda 
+                FROM lancamentos l 
+                LEFT JOIN categorias c ON l.id_categoria = c.id 
+                WHERE l.id_usuario = ?';
+        $params = [$user_id];
+        
+        if ($search) {
+            $sql .= ' AND l.descricao LIKE ?';
+            $params[] = "%$search%";
+        }
+        if ($filter_type) {
+            $sql .= ' AND l.tipo = ?';
+            $params[] = $filter_type;
+        }
+        if ($filter_category) {
+            $sql .= ' AND l.id_categoria = ?';
+            $params[] = $filter_category;
+        }
+        if ($filter_currency) {
+            $sql .= ' AND l.moeda = ?';
+            $params[] = $filter_currency;
+        }
+        if ($filter_date_start) {
+            $sql .= ' AND l.data >= ?';
+            $params[] = $filter_date_start;
+        }
+        if ($filter_date_end) {
+            $sql .= ' AND l.data <= ?';
+            $params[] = $filter_date_end;
+        }
+        if ($filter_min_value) {
+            $sql .= ' AND l.valor >= ?';
+            $params[] = $filter_min_value;
+        }
+        if ($filter_max_value) {
+            $sql .= ' AND l.valor <= ?';
+            $params[] = $filter_max_value;
+        }
+        
+        $sql .= ' ORDER BY l.data DESC';
+        
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
+        $results = $stmt->fetchAll();
+        
+        // Gerar CSV
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename=lancamentos_' . date('Y-m-d') . '.csv');
+        
+        $output = fopen('php://output', 'w');
+        fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF)); // BOM para UTF-8
+        
+        fputcsv($output, ['Data', 'Tipo', 'Descrição', 'Categoria', 'Valor', 'Moeda']);
+        
+        foreach ($results as $row) {
+            fputcsv($output, [
+                date('d/m/Y', strtotime($row['data'])),
+                ucfirst($row['tipo']),
+                $row['descricao'],
+                $row['categoria'],
+                number_format($row['valor'], 2, ',', '.'),
+                $row['moeda']
+            ]);
+        }
+        
+        fclose($output);
+        exit;
+    }
+    
     // Ações de CATEGORIA
     if ($action === 'add_category') {
         $nome = trim($_POST['nome']);
@@ -122,6 +202,10 @@ $search = $_GET['search'] ?? '';
 $filter_type = $_GET['filter_type'] ?? '';
 $filter_category = $_GET['filter_category'] ?? '';
 $filter_currency = $_GET['filter_currency'] ?? '';
+$filter_date_start = $_GET['filter_date_start'] ?? '';
+$filter_date_end = $_GET['filter_date_end'] ?? '';
+$filter_min_value = $_GET['filter_min_value'] ?? '';
+$filter_max_value = $_GET['filter_max_value'] ?? '';
 
 $sql = 'SELECT l.*, c.nome as categoria_nome FROM lancamentos l LEFT JOIN categorias c ON l.id_categoria = c.id WHERE l.id_usuario = ?';
 $params = [$user_id];
@@ -146,11 +230,42 @@ if ($filter_currency) {
     $params[] = $filter_currency;
 }
 
+if ($filter_date_start) {
+    $sql .= ' AND l.data >= ?';
+    $params[] = $filter_date_start;
+}
+
+if ($filter_date_end) {
+    $sql .= ' AND l.data <= ?';
+    $params[] = $filter_date_end;
+}
+
+if ($filter_min_value) {
+    $sql .= ' AND l.valor >= ?';
+    $params[] = $filter_min_value;
+}
+
+if ($filter_max_value) {
+    $sql .= ' AND l.valor <= ?';
+    $params[] = $filter_max_value;
+}
+
 $sql .= ' ORDER BY data DESC';
 
 $stmt = $pdo->prepare($sql);
 $stmt->execute($params);
 $lancamentos = $stmt->fetchAll();
+
+// Estatísticas dos lançamentos filtrados
+$total_receitas = 0;
+$total_despesas = 0;
+foreach ($lancamentos as $l) {
+    if ($l['tipo'] === 'receita') {
+        $total_receitas += $l['valor'];
+    } else {
+        $total_despesas += $l['valor'];
+    }
+}
 
 // Categorias do usuário + categorias padrão do sistema
 $stmt = $pdo->prepare('SELECT * FROM categorias WHERE id_usuario = ? OR id_usuario = 0 OR id_usuario IS NULL ORDER BY nome');
@@ -169,40 +284,101 @@ require 'includes/header.php';
     </div>
   </div>
   <div class="card p-3 mb-3">
-    <form method="get">
+    <form method="get" id="filterForm">
         <div class="row g-3">
-            <div class="col-md-4">
-                <input type="text" name="search" class="form-control" placeholder="Pesquisar por descrição..." value="<?= htmlspecialchars($search) ?>">
+            <div class="col-md-3">
+                <label class="form-label small">Pesquisar</label>
+                <input type="text" name="search" class="form-control" placeholder="Descrição..." value="<?= htmlspecialchars($search) ?>">
             </div>
             <div class="col-md-2">
+                <label class="form-label small">Tipo</label>
                 <select name="filter_type" class="form-select">
-                    <option value="">Todos os tipos</option>
+                    <option value="">Todos</option>
                     <option value="receita" <?= $filter_type == 'receita' ? 'selected' : '' ?>>Receita</option>
                     <option value="despesa" <?= $filter_type == 'despesa' ? 'selected' : '' ?>>Despesa</option>
                 </select>
             </div>
             <div class="col-md-2">
+                <label class="form-label small">Categoria</label>
                 <select name="filter_category" class="form-select">
-                    <option value="">Todas as categorias</option>
+                    <option value="">Todas</option>
                     <?php foreach($cats as $c): ?>
                         <option value="<?= $c['id'] ?>" <?= $filter_category == $c['id'] ? 'selected' : '' ?>><?= htmlspecialchars($c['nome']) ?></option>
                     <?php endforeach; ?>
                 </select>
             </div>
             <div class="col-md-2">
+                <label class="form-label small">Moeda</label>
                 <select name="filter_currency" class="form-select">
-                    <option value="">Todas as moedas</option>
+                    <option value="">Todas</option>
                     <option value="BRL" <?= $filter_currency == 'BRL' ? 'selected' : '' ?>>BRL</option>
                     <option value="USD" <?= $filter_currency == 'USD' ? 'selected' : '' ?>>USD</option>
                     <option value="EUR" <?= $filter_currency == 'EUR' ? 'selected' : '' ?>>EUR</option>
                 </select>
             </div>
+            <div class="col-md-3">
+                <label class="form-label small">Período</label>
+                <div class="input-group">
+                    <input type="date" name="filter_date_start" class="form-control" value="<?= htmlspecialchars($filter_date_start) ?>">
+                    <span class="input-group-text">até</span>
+                    <input type="date" name="filter_date_end" class="form-control" value="<?= htmlspecialchars($filter_date_end) ?>">
+                </div>
+            </div>
+        </div>
+        <div class="row g-3 mt-1">
             <div class="col-md-2">
-                <button type="submit" class="btn btn-primary">Filtrar</button>
+                <label class="form-label small">Valor Mínimo</label>
+                <input type="number" step="0.01" name="filter_min_value" class="form-control" placeholder="0.00" value="<?= htmlspecialchars($filter_min_value) ?>">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small">Valor Máximo</label>
+                <input type="number" step="0.01" name="filter_max_value" class="form-control" placeholder="0.00" value="<?= htmlspecialchars($filter_max_value) ?>">
+            </div>
+            <div class="col-md-8 d-flex align-items-end justify-content-end gap-2">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-filter"></i> Filtrar
+                </button>
+                <a href="lancamentos.php" class="btn btn-secondary">
+                    <i class="fas fa-redo"></i> Limpar
+                </a>
+                <button type="button" class="btn btn-success" onclick="exportCSV()">
+                    <i class="fas fa-file-csv"></i> Exportar CSV
+                </button>
             </div>
         </div>
     </form>
   </div>
+  
+  <!-- Estatísticas dos Filtros -->
+  <?php if (!empty($lancamentos)): ?>
+  <div class="row mb-3">
+    <div class="col-md-4">
+        <div class="card bg-success text-white">
+            <div class="card-body py-2">
+                <small>Total Receitas (filtrado)</small>
+                <h5 class="mb-0"><?= number_format($total_receitas, 2, ',', '.') ?></h5>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card bg-danger text-white">
+            <div class="card-body py-2">
+                <small>Total Despesas (filtrado)</small>
+                <h5 class="mb-0"><?= number_format($total_despesas, 2, ',', '.') ?></h5>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card bg-info text-white">
+            <div class="card-body py-2">
+                <small>Saldo (filtrado)</small>
+                <h5 class="mb-0"><?= number_format($total_receitas - $total_despesas, 2, ',', '.') ?></h5>
+            </div>
+        </div>
+    </div>
+  </div>
+  <?php endif; ?>
+  
   <div class="card p-3">
     <table class="table table-hover">
       <thead><tr><th>Data</th><th>Descrição</th><th>Categoria</th><th>Valor</th><th>Ações</th></tr></thead>
@@ -558,6 +734,31 @@ async function deleteCategory(id, nome) {
     }
   }
 }
+
+// Exportar CSV
+function exportCSV() {
+    const form = document.getElementById('filterForm');
+    const formData = new FormData(form);
+    formData.append('action', 'export_csv');
+    
+    // Criar form temporário para submit
+    const tempForm = document.createElement('form');
+    tempForm.method = 'POST';
+    tempForm.style.display = 'none';
+    
+    formData.forEach((value, key) => {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = key;
+        input.value = value;
+        tempForm.appendChild(input);
+    });
+    
+    document.body.appendChild(tempForm);
+    tempForm.submit();
+    document.body.removeChild(tempForm);
+}
+
 </script>
 
 <!-- Quick Add Category Modal (small, from lancamentos form) -->
