@@ -77,6 +77,13 @@ if ($total_investido > 0) {
 require_once 'includes/header.php';
 ?>
 
+<style>
+.table thead th {
+    color: #000 !important;
+    font-weight: 600 !important;
+}
+</style>
+
 <div class="container-fluid py-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1 class="h3">Meus Investimentos</h1>
@@ -88,26 +95,26 @@ require_once 'includes/header.php';
     <!-- Cards de Resumo -->
     <div class="row mb-4">
         <div class="col-md-4 mb-3">
-            <div class="card h-100">
+            <div class="card h-100 shadow-sm" style="border-radius: 15px; border: none; background: linear-gradient(135deg, #e0f7fa 0%, #b2ebf2 100%);">
                 <div class="card-body">
-                    <h6 class="card-title text-muted mb-3">Total Investido</h6>
-                    <h4 class="mb-0">R$ <?= number_format($total_investido, 2, ',', '.') ?></h4>
+                    <h6 class="card-title text-muted mb-3"><i class="fas fa-wallet me-2"></i>Total Investido</h6>
+                    <h4 class="mb-0 text-primary fw-bold">R$ <?= number_format($total_investido, 2, ',', '.') ?></h4>
                 </div>
             </div>
         </div>
         <div class="col-md-4 mb-3">
-            <div class="card h-100">
+            <div class="card h-100 shadow-sm" style="border-radius: 15px; border: none; background: linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%);">
                 <div class="card-body">
-                    <h6 class="card-title text-muted mb-3">Valor Atual</h6>
-                    <h4 class="mb-0">R$ <?= number_format($total_atual, 2, ',', '.') ?></h4>
+                    <h6 class="card-title text-muted mb-3"><i class="fas fa-chart-line me-2"></i>Valor Atual</h6>
+                    <h4 class="mb-0 text-purple fw-bold">R$ <?= number_format($total_atual, 2, ',', '.') ?></h4>
                 </div>
             </div>
         </div>
         <div class="col-md-4 mb-3">
-            <div class="card h-100">
+            <div class="card h-100 shadow-sm" style="border-radius: 15px; border: none; background: linear-gradient(135deg, <?= $rendimento_total >= 0 ? '#e8f5e9 0%, #c8e6c9 100%' : '#ffebee 0%, #ffcdd2 100%' ?>);">
                 <div class="card-body">
-                    <h6 class="card-title text-muted mb-3">Rendimento Total</h6>
-                    <h4 class="mb-0 <?= $rendimento_total >= 0 ? 'text-success' : 'text-danger' ?>">
+                    <h6 class="card-title text-muted mb-3"><i class="fas fa-percentage me-2"></i>Rendimento Total</h6>
+                    <h4 class="mb-0 fw-bold <?= $rendimento_total >= 0 ? 'text-success' : 'text-danger' ?>">
                         <?= ($rendimento_total >= 0 ? '+' : '') . number_format($rendimento_total, 2, ',', '.') ?>%
                     </h4>
                 </div>
@@ -122,34 +129,37 @@ require_once 'includes/header.php';
                     <i class="fas fa-info-circle"></i> Você ainda não tem investimentos cadastrados.
                 </div>
             <?php else: ?>
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
+                <div class="table-responsive" style="border-radius: 15px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+                    <table class="table table-hover mb-0">
+                        <thead style="background: linear-gradient(135deg, #e0e0e0 0%, #f5f5f5 100%);">
                             <tr>
-                                <th>Nome</th>
-                                <th>Tipo</th>
-                                <th>Valor Investido</th>
-                                <th>Valor Atual</th>
-                                <th>Rendimento</th>
-                                <th>Data Início</th>
-                                <th>Vencimento</th>
-                                <th>Risco</th>
-                                <th>Status</th>
-                                <th>Ações</th>
+                                <th style="border: none; padding: 15px; color: #000;">Nome</th>
+                                <th style="border: none; padding: 15px; color: #000;">Tipo</th>
+                                <th style="border: none; padding: 15px; color: #000;">Valor Investido</th>
+                                <th style="border: none; padding: 15px; color: #000;">Valor Atual</th>
+                                <th style="border: none; padding: 15px; color: #000;">Rendimento</th>
+                                <th style="border: none; padding: 15px; color: #000;">Data Início</th>
+                                <th style="border: none; padding: 15px; color: #000;">Vencimento</th>
+                                <th style="border: none; padding: 15px; color: #000;">Risco</th>
+                                <th style="border: none; padding: 15px; color: #000;">Status</th>
+                                <th style="border: none; padding: 15px; color: #000;">Ações</th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody style="background: white;">
                             <?php foreach ($investimentos as $inv): ?>
-                                <tr>
-                                    <td><?= htmlspecialchars($inv['nome']) ?></td>
-                                    <td><?= htmlspecialchars($inv['tipo']) ?></td>
-                                    <td>R$ <?= number_format($inv['valor_investido'], 2, ',', '.') ?></td>
-                                    <td>R$ <?= number_format($inv['valor_atual'], 2, ',', '.') ?></td>
-                                    <td class="<?= $inv['rendimento_percentual'] >= 0 ? 'text-success' : 'text-danger' ?>">
-                                        <?= ($inv['rendimento_percentual'] >= 0 ? '+' : '') . number_format($inv['rendimento_percentual'], 2, ',', '.') ?>%
+                                <tr style="transition: all 0.3s ease;">
+                                    <td><strong><?= htmlspecialchars($inv['nome']) ?></strong></td>
+                                    <td><span class="badge" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);"><?= htmlspecialchars($inv['tipo']) ?></span></td>
+                                    <td><strong>R$ <?= number_format($inv['valor_investido'], 2, ',', '.') ?></strong></td>
+                                    <td><strong class="text-primary">R$ <?= number_format($inv['valor_atual'], 2, ',', '.') ?></strong></td>
+                                    <td>
+                                        <span class="badge <?= $inv['rendimento_percentual'] >= 0 ? 'bg-success' : 'bg-danger' ?>" style="font-size: 0.9rem;">
+                                            <i class="fas fa-<?= $inv['rendimento_percentual'] >= 0 ? 'arrow-up' : 'arrow-down' ?>"></i>
+                                            <?= ($inv['rendimento_percentual'] >= 0 ? '+' : '') . number_format($inv['rendimento_percentual'], 2, ',', '.') ?>%
+                                        </span>
                                     </td>
-                                    <td><?= date('d/m/Y', strtotime($inv['data_inicio'])) ?></td>
-                                    <td><?= $inv['data_vencimento'] ? date('d/m/Y', strtotime($inv['data_vencimento'])) : '-' ?></td>
+                                    <td><i class="fas fa-calendar-alt text-muted me-1"></i><?= date('d/m/Y', strtotime($inv['data_inicio'])) ?></td>
+                                    <td><?= $inv['data_vencimento'] ? '<i class="fas fa-calendar-check text-muted me-1"></i>' . date('d/m/Y', strtotime($inv['data_vencimento'])) : '<span class="text-muted">-</span>' ?></td>
                                     <td>
                                         <span class="badge <?php
                                             echo match($inv['risco']) {

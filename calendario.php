@@ -134,80 +134,121 @@ include 'includes/header.php';
 
 <style>
 .calendario-container {
-    background: white;
-    border-radius: 10px;
-    padding: 20px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 15px;
+    padding: 25px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
 }
 .calendario-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 20px;
+    margin-bottom: 25px;
+    color: white;
+}
+.calendario-header h4 {
+    color: #ffd700;
+    font-weight: bold;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
 }
 .calendario-grid {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
-    gap: 5px;
+    gap: 8px;
 }
 .dia-semana {
     text-align: center;
     font-weight: bold;
-    padding: 10px;
-    background: #f8f9fa;
-    border-radius: 5px;
+    padding: 12px;
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 8px;
+    color: #764ba2;
+    font-size: 13px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
 }
 .dia-celula {
-    min-height: 100px;
-    border: 1px solid #dee2e6;
-    border-radius: 5px;
-    padding: 5px;
+    min-height: 110px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 10px;
+    padding: 8px;
     position: relative;
-    background: white;
+    background: rgba(255, 255, 255, 0.95);
     cursor: pointer;
-    transition: all 0.3s;
-}
-.dia-celula:hover {
-    background: #f8f9fa;
+    transition: all 0.3s ease;
     box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
+.dia-celula:hover {
+    background: white;
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+    border-color: #ffd700;
+}
 .dia-celula.hoje {
-    border: 2px solid #007bff;
-    background: #e7f3ff;
+    border: 3px solid #ffd700;
+    background: linear-gradient(135deg, #fff9e6 0%, #fffaf0 100%);
+    box-shadow: 0 4px 15px rgba(255, 215, 0, 0.4);
 }
 .dia-celula.vazio {
-    background: #f8f9fa;
+    background: rgba(255, 255, 255, 0.1);
     cursor: default;
+    border: 1px dashed rgba(255, 255, 255, 0.2);
+}
+.dia-celula.vazio:hover {
+    transform: none;
+    box-shadow: none;
 }
 .dia-numero {
     font-weight: bold;
-    font-size: 14px;
-    margin-bottom: 5px;
+    font-size: 16px;
+    margin-bottom: 6px;
+    color: #667eea;
+}
+.dia-celula.hoje .dia-numero {
+    color: #ff6b6b;
+    font-size: 18px;
 }
 .evento {
     font-size: 10px;
-    padding: 2px 4px;
-    margin: 2px 0;
-    border-radius: 3px;
+    padding: 3px 5px;
+    margin: 3px 0;
+    border-radius: 4px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     color: white;
+    font-weight: 500;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
 }
 .evento-receita {
-    background: #28a745;
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
 }
 .evento-despesa {
-    background: #dc3545;
+    background: linear-gradient(135deg, #dc3545 0%, #fd7e14 100%);
 }
 .evento-pagar {
-    background: #ffc107;
+    background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%);
     color: #000;
 }
 .evento-receber {
-    background: #17a2b8;
+    background: linear-gradient(135deg, #17a2b8 0%, #0dcaf0 100%);
 }
 .evento-lembrete {
-    background: #6c757d;
+    background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+}
+.btn-nav-calendario {
+    background: rgba(255, 255, 255, 0.2);
+    border: 2px solid rgba(255, 255, 255, 0.5);
+    color: white;
+    font-weight: bold;
+    padding: 8px 20px;
+    border-radius: 25px;
+    transition: all 0.3s ease;
+}
+.btn-nav-calendario:hover {
+    background: rgba(255, 215, 0, 0.3);
+    border-color: #ffd700;
+    color: #ffd700;
+    transform: scale(1.05);
 }
 </style>
 
@@ -268,25 +309,25 @@ include 'includes/header.php';
                 <!-- Navegação -->
                 <div class="calendario-header">
                     <a href="?mes=<?= $mes == 1 ? 12 : $mes - 1 ?>&ano=<?= $mes == 1 ? $ano - 1 : $ano ?>" 
-                       class="btn btn-outline-primary">
+                       class="btn btn-nav-calendario">
                         <i class="fas fa-chevron-left"></i> Anterior
                     </a>
                     
                     <h4 class="mb-0"><?= $meses[$mes] ?> de <?= $ano ?></h4>
                     
                     <a href="?mes=<?= $mes == 12 ? 1 : $mes + 1 ?>&ano=<?= $mes == 12 ? $ano + 1 : $ano ?>" 
-                       class="btn btn-outline-primary">
+                       class="btn btn-nav-calendario">
                         Próximo <i class="fas fa-chevron-right"></i>
                     </a>
                 </div>
 
                 <!-- Legenda -->
                 <div class="mb-3 d-flex flex-wrap gap-2">
-                    <span class="badge evento-receita">Receita</span>
-                    <span class="badge evento-despesa">Despesa</span>
-                    <span class="badge evento-pagar">A Pagar</span>
-                    <span class="badge evento-receber">A Receber</span>
-                    <span class="badge evento-lembrete">Lembrete</span>
+                    <span class="badge evento-receita px-3 py-2"><i class="fas fa-arrow-up me-1"></i>Receita</span>
+                    <span class="badge evento-despesa px-3 py-2"><i class="fas fa-arrow-down me-1"></i>Despesa</span>
+                    <span class="badge evento-pagar px-3 py-2"><i class="fas fa-file-invoice-dollar me-1"></i>A Pagar</span>
+                    <span class="badge evento-receber px-3 py-2"><i class="fas fa-hand-holding-usd me-1"></i>A Receber</span>
+                    <span class="badge evento-lembrete px-3 py-2"><i class="fas fa-bell me-1"></i>Lembrete</span>
                 </div>
 
                 <!-- Grid do Calendário -->
