@@ -740,6 +740,95 @@ CREATE TABLE `contas_receber` (
   CONSTRAINT `contas_receber_ibfk_2` FOREIGN KEY (`id_categoria`) REFERENCES `categorias` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- --------------------------------------------------------
+
+--
+-- Estrutura para tabela `conciliacoes`
+--
+
+CREATE TABLE `conciliacoes` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `id_usuario` int(11) NOT NULL,
+  `id_conta` int(11) NOT NULL,
+  `data_conciliacao` date NOT NULL,
+  `saldo_sistema` decimal(15,2) NOT NULL,
+  `saldo_real` decimal(15,2) NOT NULL,
+  `divergencia` decimal(15,2) GENERATED ALWAYS AS (ABS(`saldo_real` - `saldo_sistema`)) STORED,
+  `status` enum('conciliado','divergente','pendente') DEFAULT 'pendente',
+  `observacoes` text DEFAULT NULL,
+  `data_registro` datetime DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `id_usuario` (`id_usuario`),
+  KEY `id_conta` (`id_conta`),
+  KEY `data_conciliacao` (`data_conciliacao`),
+  CONSTRAINT `conciliacoes_ibfk_1` FOREIGN KEY (`id_usuario`) REFERENCES `usuarios` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `conciliacoes_ibfk_2` FOREIGN KEY (`id_conta`) REFERENCES `contas_bancarias` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Estrutura para tabela `backups`
+--
+
+CREATE TABLE `backups` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `id_usuario` int(11) NOT NULL,
+  `nome_arquivo` varchar(200) NOT NULL,
+  `tamanho_bytes` bigint(20) DEFAULT NULL,
+  `data_backup` datetime DEFAULT current_timestamp(),
+  `tipo` enum('completo','parcial') DEFAULT 'completo',
+  `status` enum('sucesso','erro') DEFAULT 'sucesso',
+  `observacoes` text DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `id_usuario` (`id_usuario`),
+  KEY `data_backup` (`data_backup`),
+  CONSTRAINT `backups_ibfk_1` FOREIGN KEY (`id_usuario`) REFERENCES `usuarios` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Estrutura para tabela `membros_familia`
+--
+
+CREATE TABLE `membros_familia` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `id_proprietario` int(11) NOT NULL,
+  `id_membro` int(11) NOT NULL,
+  `permissoes` enum('visualizacao','edicao','total') DEFAULT 'visualizacao',
+  `status` enum('pendente','ativo','recusado','inativo') DEFAULT 'pendente',
+  `data_convite` datetime DEFAULT current_timestamp(),
+  `data_aceite` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `unico_membro` (`id_proprietario`,`id_membro`),
+  KEY `id_proprietario` (`id_proprietario`),
+  KEY `id_membro` (`id_membro`),
+  CONSTRAINT `membros_familia_ibfk_1` FOREIGN KEY (`id_proprietario`) REFERENCES `usuarios` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `membros_familia_ibfk_2` FOREIGN KEY (`id_membro`) REFERENCES `usuarios` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Estrutura para tabela `anexos_lancamentos`
+--
+
+CREATE TABLE `anexos_lancamentos` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `id_lancamento` int(11) NOT NULL,
+  `nome_arquivo` varchar(255) NOT NULL,
+  `nome_original` varchar(255) NOT NULL,
+  `caminho_arquivo` varchar(500) NOT NULL,
+  `tipo_arquivo` varchar(10) NOT NULL,
+  `tamanho` bigint(20) NOT NULL,
+  `descricao` text DEFAULT NULL,
+  `data_upload` datetime DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `id_lancamento` (`id_lancamento`),
+  CONSTRAINT `anexos_lancamentos_ibfk_1` FOREIGN KEY (`id_lancamento`) REFERENCES `lancamentos` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

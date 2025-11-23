@@ -162,6 +162,36 @@ if (session_status() == PHP_SESSION_NONE) session_start();
                             <span>Pagar/Receber</span>
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link <?= $current_page === 'conciliacao.php' ? 'active' : '' ?>" href="conciliacao.php">
+                            <i class="fas fa-balance-scale"></i>
+                            <span>Conciliação</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link <?= $current_page === 'backup.php' ? 'active' : '' ?>" href="backup.php">
+                            <i class="fas fa-database"></i>
+                            <span>Backup</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link <?= $current_page === 'familia.php' ? 'active' : '' ?>" href="familia.php">
+                            <i class="fas fa-users"></i>
+                            <span>Família</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link <?= $current_page === 'anexos.php' ? 'active' : '' ?>" href="anexos.php">
+                            <i class="fas fa-paperclip"></i>
+                            <span>Anexos</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link <?= $current_page === 'calendario.php' ? 'active' : '' ?>" href="calendario.php">
+                            <i class="fas fa-calendar-alt"></i>
+                            <span>Calendário</span>
+                        </a>
+                    </li>
                 </ul>
             </nav>
 
