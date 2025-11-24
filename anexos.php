@@ -1,6 +1,6 @@
 <?php
 require_once 'includes/db.php';
-session_start();
+require_once 'includes/AntivirusScanner.php';
 
 if (!isset($_SESSION['user_id'])) {
     header('Location: login.php');
@@ -11,8 +11,15 @@ $user_id = $_SESSION['user_id'];
 
 // Processar upload de anexo
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['arquivo'])) {
-    $id_lancamento = $_POST['id_lancamento'];
-    $descricao = $_POST['descricao'] ?? '';
+    // Validar CSRF
+    if (!Security::validateCSRFToken($_POST['csrf_token'] ?? '')) {
+        Security::logSecurityEvent('csrf_failed_upload', ['user_id' => $user_id]);
+        header('Location: anexos.php?error=csrf_invalido');
+        exit;
+    }
+    
+    $id_lancamento = (int) $_POST['id_lancamento'];
+    $descricao = Security::sanitize($_POST['descricao'] ?? '');
     
     // Verificar se o lançamento pertence ao usuário
     $sql = "SELECT id FROM lancamentos WHERE id = ? AND id_usuario = ?";
@@ -21,20 +28,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['arquivo'])) {
     
     if ($stmt->fetch()) {
         $arquivo = $_FILES['arquivo'];
-        $nome_original = $arquivo['name'];
-        $extensao = strtolower(pathinfo($nome_original, PATHINFO_EXTENSION));
-        $tamanho = $arquivo['size'];
         
-        // Validar tipo de arquivo
-        $tipos_permitidos = ['jpg', 'jpeg', 'png', 'pdf', 'gif'];
-        if (!in_array($extensao, $tipos_permitidos)) {
+        // Validar arquivo com Security
+        $validation = Security::validateFileType($arquivo);
+        
+        if (!$validation['valid']) {
+            Security::logSecurityEvent('invalid_file_upload', [
+                'user_id' => $user_id,
+                'error' => $validation['error']
+            ]);
             header('Location: anexos.php?error=tipo_invalido');
             exit;
         }
         
         // Validar tamanho (max 5MB)
-        if ($tamanho > 5 * 1024 * 1024) {
+        $max_size = Env::get('MAX_UPLOAD_SIZE', 5242880);
+        if ($arquivo['size'] > $max_size) {
             header('Location: anexos.php?error=tamanho_excedido');
+            exit;
+        }
+        
+        // SCAN ANTIVÍRUS
+        $scanResult = AntivirusScanner::scanFile($arquivo['tmp_name']);
+        
+        if (!$scanResult['safe']) {
+            Security::logSecurityEvent('malware_detected', [
+                'user_id' => $user_id,
+                'file_name' => $arquivo['name'],
+                'threat' => $scanResult['threat'] ?? 'Desconhecido',
+                'scanner' => $scanResult['scanner'] ?? 'unknown'
+            ]);
+            
+            // Deletar arquivo temporário
+            @unlink($arquivo['tmp_name']);
+            
+            header('Location: anexos.php?error=virus_detectado');
             exit;
         }
         
@@ -44,11 +72,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['arquivo'])) {
             mkdir($diretorio_upload, 0755, true);
         }
         
-        // Gerar nome único
-        $nome_arquivo = uniqid() . '_' . time() . '.' . $extensao;
+        // Gerar nome seguro
+        $nome_arquivo = Security::secureFilename($arquivo['name']);
         $caminho_completo = $diretorio_upload . $nome_arquivo;
         
         if (move_uploaded_file($arquivo['tmp_name'], $caminho_completo)) {
+            $extensao = strtolower(pathinfo($arquivo['name'], PATHINFO_EXTENSION));
+            
             // Salvar no banco
             $sql = "INSERT INTO anexos_lancamentos (id_lancamento, nome_arquivo, nome_original, caminho_arquivo, tipo_arquivo, tamanho, descricao) 
                     VALUES (?, ?, ?, ?, ?, ?, ?)";
@@ -56,11 +86,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['arquivo'])) {
             $stmt->execute([
                 $id_lancamento,
                 $nome_arquivo,
-                $nome_original,
+                $arquivo['name'],
                 $caminho_completo,
                 $extensao,
-                $tamanho,
+                $arquivo['size'],
                 $descricao
+            ]);
+            
+            Security::logSecurityEvent('file_uploaded', [
+                'user_id' => $user_id,
+                'file_type' => $extensao,
+                'size' => $arquivo['size']
             ]);
             
             header('Location: anexos.php?success=enviado&id=' . $id_lancamento);
@@ -77,7 +113,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['arquivo'])) {
 
 // Deletar anexo
 if (isset($_GET['deletar'])) {
-    $id_anexo = $_GET['deletar'];
+    $id_anexo = (int) $_GET['deletar'];
     
     // Buscar anexo e verificar permissão
     $sql = "SELECT a.*, l.id_usuario 
@@ -179,7 +215,9 @@ include 'includes/header.php';
                 'tipo_invalido' => 'Tipo de arquivo não permitido. Use JPG, PNG, GIF ou PDF.',
                 'tamanho_excedido' => 'Arquivo muito grande. Tamanho máximo: 5MB.',
                 'upload_falhou' => 'Falha no upload do arquivo.',
-                'lancamento_invalido' => 'Lançamento não encontrado.'
+                'lancamento_invalido' => 'Lançamento não encontrado.',
+                'virus_detectado' => '⚠️ AMEAÇA DETECTADA! O arquivo enviado contém malware e foi bloqueado.',
+                'csrf_invalido' => 'Token de segurança inválido. Recarregue a página e tente novamente.'
             ];
             echo '<i class="fas fa-times-circle me-2"></i>' . ($errors[$_GET['error']] ?? 'Erro desconhecido.');
             ?>
@@ -236,6 +274,7 @@ include 'includes/header.php';
                 </div>
                 <div class="card-body">
                     <form method="post" enctype="multipart/form-data">
+                        <?= Security::csrfField() ?>
                         <div class="mb-3">
                             <label class="form-label">Lançamento</label>
                             <select name="id_lancamento" class="form-select" required>
@@ -244,7 +283,7 @@ include 'includes/header.php';
                                     <option value="<?= $lanc['id'] ?>" <?= ($filtro_id == $lanc['id']) ? 'selected' : '' ?>>
                                         <?= date('d/m/Y', strtotime($lanc['data'])) ?> - 
                                         <?= htmlspecialchars($lanc['descricao']) ?> - 
-                                        R$ <?= number_format($lanc['valor'], 2, ',', '.') ?>
+                                        <?= fmt_currency($lanc['valor']) ?>
                                         <?php if ($lanc['total_anexos'] > 0): ?>
                                             (<?= $lanc['total_anexos'] ?> anexo<?= $lanc['total_anexos'] > 1 ? 's' : '' ?>)
                                         <?php endif; ?>
@@ -320,7 +359,7 @@ include 'includes/header.php';
                                             </p>
                                             <p class="small text-muted mb-1">
                                                 <span class="badge bg-<?= $anexo['tipo'] === 'receita' ? 'success' : 'danger' ?>">
-                                                    R$ <?= number_format($anexo['valor'], 2, ',', '.') ?>
+                                                    <?= fmt_currency($anexo['valor']) ?>
                                                 </span>
                                                 <span class="ms-1"><?= date('d/m/Y', strtotime($anexo['data'])) ?></span>
                                             </p>

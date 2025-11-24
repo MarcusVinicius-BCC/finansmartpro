@@ -1,0 +1,21 @@
+# Proteger diretório de uploads
+# Bloquear execução de scripts
+
+<FilesMatch "\.(php|php3|php4|php5|phtml|pl|py|jsp|asp|sh|cgi)$">
+    Order Deny,Allow
+    Deny from all
+</FilesMatch>
+
+# Permitir apenas arquivos permitidos
+<FilesMatch "\.(jpg|jpeg|png|gif|pdf)$">
+    Order Allow,Deny
+    Allow from all
+</FilesMatch>
+
+# Desabilitar listagem de diretório
+Options -Indexes
+
+# Prevenir acesso direto a arquivos
+RewriteEngine On
+RewriteCond %{REQUEST_FILENAME} -f
+RewriteRule ^.*$ - [R=403,L]

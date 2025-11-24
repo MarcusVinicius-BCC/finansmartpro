@@ -1,6 +1,5 @@
 <?php
 require_once 'includes/db.php';
-session_start();
 
 if (!isset($_SESSION['user_id'])) {
     header('Location: login.php');
@@ -266,7 +265,7 @@ include 'includes/header.php';
             <div class="card shadow">
                 <div class="card-body text-center">
                     <i class="fas fa-arrow-up fa-2x text-success mb-2"></i>
-                    <h4 class="mb-0 text-success">R$ <?= number_format($stats['total_receitas'] ?? 0, 2, ',', '.') ?></h4>
+                    <h4 class="mb-0 text-success"><?= fmt_currency($stats['total_receitas'] ?? 0) ?></h4>
                     <small class="text-muted">Receitas do Mês</small>
                 </div>
             </div>
@@ -275,7 +274,7 @@ include 'includes/header.php';
             <div class="card shadow">
                 <div class="card-body text-center">
                     <i class="fas fa-arrow-down fa-2x text-danger mb-2"></i>
-                    <h4 class="mb-0 text-danger">R$ <?= number_format($stats['total_despesas'] ?? 0, 2, ',', '.') ?></h4>
+                    <h4 class="mb-0 text-danger"><?= fmt_currency($stats['total_despesas'] ?? 0) ?></h4>
                     <small class="text-muted">Despesas do Mês</small>
                 </div>
             </div>
@@ -285,7 +284,7 @@ include 'includes/header.php';
                 <div class="card-body text-center">
                     <i class="fas fa-balance-scale fa-2x text-primary mb-2"></i>
                     <h4 class="mb-0 text-<?= (($stats['total_receitas'] ?? 0) - ($stats['total_despesas'] ?? 0)) >= 0 ? 'success' : 'danger' ?>">
-                        R$ <?= number_format(($stats['total_receitas'] ?? 0) - ($stats['total_despesas'] ?? 0), 2, ',', '.') ?>
+                        <?= fmt_currency(($stats['total_receitas'] ?? 0) - ($stats['total_despesas'] ?? 0)) ?>
                     </h4>
                     <small class="text-muted">Saldo do Mês</small>
                 </div>
@@ -360,7 +359,7 @@ include 'includes/header.php';
                                 <div class="evento evento-<?= $evento['tipo'] === 'lancamento' ? $evento['subtipo'] : ($evento['tipo'] === 'conta' ? $evento['subtipo'] : $evento['tipo']) ?>" 
                                      title="<?= htmlspecialchars($evento['descricao']) ?>">
                                     <?php if (isset($evento['valor'])): ?>
-                                        R$ <?= number_format($evento['valor'], 2, ',', '.') ?>
+                                        <?= fmt_currency($evento['valor']) ?>
                                     <?php else: ?>
                                         <?= htmlspecialchars(substr($evento['descricao'], 0, 15)) ?>
                                     <?php endif; ?>

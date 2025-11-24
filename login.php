@@ -1,6 +1,6 @@
 <?php
 require 'includes/db.php';
-session_start();
+require_once 'includes/validator.php';
 
 $errors = [];
 $reg_errors = [];
@@ -8,70 +8,115 @@ $reg_errors = [];
 // Processar login
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     if ($_POST['action'] === 'login') {
-        $email = filter_input(INPUT_POST, 'email', FILTER_VALIDATE_EMAIL);
-        $senha = $_POST['senha'] ?? '';
-        
-        if (!$email) $errors[] = 'Email inválido.';
-        if (empty($senha)) $errors[] = 'Senha requerida.';
-        
-        if (empty($errors)) {
-            $stmt = $pdo->prepare('SELECT id, senha, nome FROM usuarios WHERE email = ?');
-            $stmt->execute([$email]);
-            $user = $stmt->fetch();
+        // Validar CSRF
+        if (!Security::validateCSRFToken($_POST['csrf_token'] ?? '')) {
+            Security::logSecurityEvent('csrf_validation_failed', ['action' => 'login']);
+            $errors[] = 'Token de segurança inválido. Recarregue a página.';
+        } else {
+            $email = Security::sanitize($_POST['email'] ?? '', 'email');
+            $senha = $_POST['senha'] ?? '';
             
-            if ($user && password_verify($senha, $user['senha'])) {
-                $_SESSION['user_id'] = $user['id'];
-                $_SESSION['user_name'] = $user['nome'];
-                header('Location: dashboard.php');
-                exit;
+            // Validar dados
+            $validator = new Validator(['email' => $email, 'senha' => $senha]);
+            $validator->required('email', 'Email é obrigatório')
+                     ->email('email', 'Email inválido')
+                     ->required('senha', 'Senha é obrigatória');
+            
+            if ($validator->fails()) {
+                $errors = array_values($validator->errors());
             } else {
-                $errors[] = 'Credenciais inválidas.';
+                // Rate limiting
+                $rateCheck = Security::checkRateLimit($email);
+                
+                if (is_array($rateCheck) && isset($rateCheck['blocked'])) {
+                    Security::logSecurityEvent('rate_limit_exceeded', ['email' => $email]);
+                    $errors[] = "Muitas tentativas de login. Tente novamente em {$rateCheck['remaining_time']} minutos.";
+                } else {
+                    $stmt = $pdo->prepare('SELECT id, senha, nome FROM usuarios WHERE email = ?');
+                    $stmt->execute([$email]);
+                    $user = $stmt->fetch();
+                    
+                    if ($user && password_verify($senha, $user['senha'])) {
+                        // Login bem-sucedido
+                        Security::clearRateLimit($email);
+                        Security::logSecurityEvent('login_success', ['user_id' => $user['id']]);
+                        
+                        $_SESSION['user_id'] = $user['id'];
+                        $_SESSION['user_name'] = $user['nome'];
+                        
+                        // Regenerar ID de sessão
+                        session_regenerate_id(true);
+                        
+                        header('Location: dashboard.php');
+                        exit;
+                    } else {
+                        Security::logSecurityEvent('login_failed', ['email' => $email]);
+                        $errors[] = 'Email ou senha incorretos.';
+                    }
+                }
             }
         }
     }
     // Processar registro
     elseif ($_POST['action'] === 'register') {
-        $nome = trim($_POST['nome'] ?? '');
-        $email = filter_input(INPUT_POST, 'email', FILTER_VALIDATE_EMAIL);
-        $senha = $_POST['senha'] ?? '';
-        $confirmar_senha = $_POST['confirmar_senha'] ?? '';
-
-        // Validações
-        if (empty($nome)) {
-            $reg_errors[] = 'Nome é obrigatório.';
-        }
-
-        if (!$email) {
-            $reg_errors[] = 'Email inválido.';
+        // Validar CSRF
+        if (!Security::validateCSRFToken($_POST['csrf_token'] ?? '')) {
+            Security::logSecurityEvent('csrf_validation_failed', ['action' => 'register']);
+            $reg_errors[] = 'Token de segurança inválido. Recarregue a página.';
         } else {
-            $stmt = $pdo->prepare('SELECT id FROM usuarios WHERE email = ?');
-            $stmt->execute([$email]);
-            if ($stmt->fetch()) {
-                $reg_errors[] = 'Este email já está em uso.';
+            $nome = Security::sanitize($_POST['nome'] ?? '');
+            $email = Security::sanitize($_POST['email'] ?? '', 'email');
+            $senha = $_POST['senha'] ?? '';
+            $confirmar_senha = $_POST['confirmar_senha'] ?? '';
+
+            // Validações
+            $validator = new Validator([
+                'nome' => $nome,
+                'email' => $email,
+                'senha' => $senha,
+                'confirmar_senha' => $confirmar_senha
+            ]);
+            
+            $validator->required('nome', 'Nome é obrigatório')
+                     ->min('nome', 3, 'Nome deve ter pelo menos 3 caracteres')
+                     ->required('email', 'Email é obrigatório')
+                     ->email('email', 'Email inválido')
+                     ->required('senha', 'Senha é obrigatória')
+                     ->min('senha', 6, 'Senha deve ter pelo menos 6 caracteres')
+                     ->match('senha', 'confirmar_senha', 'As senhas não coincidem');
+
+            // Verificar email duplicado
+            if (Security::validateEmail($email)) {
+                $stmt = $pdo->prepare('SELECT id FROM usuarios WHERE email = ?');
+                $stmt->execute([$email]);
+                if ($stmt->fetch()) {
+                    $validator->errors()['email'] = 'Este email já está em uso.';
+                }
             }
-        }
 
-        if (strlen($senha) < 6) {
-            $reg_errors[] = 'A senha deve ter pelo menos 6 caracteres.';
-        }
+            if ($validator->fails()) {
+                $reg_errors = array_values($validator->errors());
+            } else {
+                try {
+                    $senha_hash = password_hash($senha, PASSWORD_DEFAULT);
+                    $stmt = $pdo->prepare('INSERT INTO usuarios (nome, email, senha, moeda_base) VALUES (?, ?, ?, ?)');
+                    $stmt->execute([$nome, $email, $senha_hash, 'BRL']);
 
-        if ($senha !== $confirmar_senha) {
-            $reg_errors[] = 'As senhas não coincidem.';
-        }
-
-        if (empty($reg_errors)) {
-            try {
-                $senha_hash = password_hash($senha, PASSWORD_DEFAULT);
-                $stmt = $pdo->prepare('INSERT INTO usuarios (nome, email, senha) VALUES (?, ?, ?)');
-                $stmt->execute([$nome, $email, $senha_hash]);
-
-                $_SESSION['user_id'] = $pdo->lastInsertId();
-                $_SESSION['user_name'] = $nome;
-                
-                header('Location: dashboard.php');
-                exit;
-            } catch (PDOException $e) {
-                $reg_errors[] = 'Erro ao criar conta. Tente novamente.';
+                    $user_id = $pdo->lastInsertId();
+                    
+                    Security::logSecurityEvent('user_registered', ['user_id' => $user_id, 'email' => $email]);
+                    
+                    $_SESSION['user_id'] = $user_id;
+                    $_SESSION['user_name'] = $nome;
+                    
+                    session_regenerate_id(true);
+                    
+                    header('Location: dashboard.php');
+                    exit;
+                } catch (PDOException $e) {
+                    Security::logSecurityEvent('registration_error', ['error' => $e->getMessage()]);
+                    $reg_errors[] = 'Erro ao criar conta. Tente novamente.';
+                }
             }
         }
     }
@@ -136,6 +181,7 @@ require 'includes/header.php';
 
                             <form method="post" novalidate>
                                 <input type="hidden" name="action" value="login">
+                                <?= Security::csrfField() ?>
                                 <div class="mb-3">
                                     <label for="email" class="form-label">E-mail</label>
                                     <input type="email" 
@@ -183,6 +229,7 @@ require 'includes/header.php';
 
                             <form method="post" id="registerForm" novalidate>
                                 <input type="hidden" name="action" value="register">
+                                <?= Security::csrfField() ?>
                                 <div class="mb-3">
                                     <label for="reg_nome" class="form-label">Nome</label>
                                     <input type="text" 
@@ -282,6 +329,13 @@ require 'includes/header.php';
                     const urlParams = new URLSearchParams(window.location.search);
                     const tab = urlParams.get('tab');
                     if (tab === 'register') {
+                        const registerTab = new bootstrap.Tab(document.getElementById('register-tab'));
+                        registerTab.show();
+                    }
+                    
+                    // Verificar se veio do botão "Começar Grátis"
+                    if (sessionStorage.getItem('showRegister') === 'true') {
+                        sessionStorage.removeItem('showRegister');
                         const registerTab = new bootstrap.Tab(document.getElementById('register-tab'));
                         registerTab.show();
                     }

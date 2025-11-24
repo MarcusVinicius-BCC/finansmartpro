@@ -1,0 +1,14 @@
+.git
+.gitignore
+node_modules
+*.log
+.vscode
+.idea
+prepare_production.bat
+security_tools.bat
+security_tools.sh
+test_*.php
+*.md
+database_indexes.sql
+database_indexes_safe.sql
+minify_assets.php

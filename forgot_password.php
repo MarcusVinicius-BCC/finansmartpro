@@ -1,94 +1,159 @@
 <?php
-session_start();
-require 'includes/db.php';
+/**
+ * Página de Recuperação de Senha
+ * Permite ao usuário solicitar link de redefinição por email
+ */
 
-use PHPMailer\PHPMailer\PHPMailer;
-use PHPMailer\PHPMailer\Exception;
+require_once 'includes/db.php';
+require_once 'includes/security.php';
+require_once 'includes/EmailService.php';
 
-require 'vendor/autoload.php';
+// Se já está logado, redireciona
+if (isset($_SESSION['user_id'])) {
+    header('Location: dashboard.php');
+    exit;
+}
 
-$errors = [];
-$success = '';
+$message = '';
+$messageType = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $email = filter_input(INPUT_POST, 'email', FILTER_VALIDATE_EMAIL);
-
-    if (!$email) {
-        $errors[] = 'Email inválido.';
+    // Validar CSRF
+    if (!Security::validateCSRFToken($_POST['csrf_token'] ?? '')) {
+        $message = 'Token de segurança inválido. Tente novamente.';
+        $messageType = 'danger';
     } else {
-        $stmt = $pdo->prepare('SELECT id FROM usuarios WHERE email = ?');
-        $stmt->execute([$email]);
-        $user = $stmt->fetch();
-
-        if ($user) {
-            $token = bin2hex(random_bytes(50));
-            $expires = new DateTime('now +1 hour');
-
-            $stmt = $pdo->prepare('INSERT INTO password_resets (email, token, expires_at) VALUES (?, ?, ?)');
-            $stmt->execute([$email, $token, $expires->format('Y-m-d H:i:s')]);
-
-            $reset_link = "http://" . $_SERVER['HTTP_HOST'] . "/finansmartpro/reset_password.php?token=" . $token;
-
-            $mail = new PHPMailer(true);
-            try {
-                //Server settings
-                $mail->isSMTP();
-                $mail->Host       = 'sandbox.smtp.mailtrap.io';
-                $mail->SMTPAuth   = true;
-                $mail->Username   = '952bbf04907c48';
-                $mail->Password   = '70a5c57a1c4113';
-                $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
-                $mail->Port       = 2525;
-
-                //Recipients
-                $mail->setFrom('no-reply@finansmartpro.com', 'FinanSmart Pro');
-                $mail->addAddress($email);
-
-                // Content
-                $mail->isHTML(true);
-                $mail->Subject = 'Redefinicao de Senha - FinanSmart Pro';
-                $mail->Body    = "Clique neste link para redefinir sua senha: <a href='{$reset_link}'>{$reset_link}</a>";
-                $mail->AltBody = "Copie e cole este link no seu navegador para redefinir sua senha: {$reset_link}";
-
-                $mail->send();
-                $success = 'Um link para redefinir sua senha foi enviado para o seu email.';
-            } catch (Exception $e) {
-                $errors[] = "Nao foi possivel enviar o email. Mailer Error: {$mail->ErrorInfo}";
-            }
+        $email = filter_var($_POST['email'] ?? '', FILTER_SANITIZE_EMAIL);
+        
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $message = 'Por favor, insira um email válido.';
+            $messageType = 'warning';
         } else {
-            $errors[] = 'Nenhum usuario encontrado com este email.';
+            // Buscar usuário
+            $stmt = $pdo->prepare("SELECT id, nome FROM usuarios WHERE email = ?");
+            $stmt->execute([$email]);
+            $user = $stmt->fetch();
+            
+            if ($user) {
+                // Gerar token seguro
+                $token = bin2hex(random_bytes(32));
+                $expires = date('Y-m-d H:i:s', strtotime('+1 hour'));
+                
+                // Salvar token no banco
+                $stmt = $pdo->prepare("
+                    INSERT INTO password_resets (email, token, expires_at)
+                    VALUES (?, ?, ?)
+                ");
+                $stmt->execute([$email, $token, $expires]);
+                
+                // Enviar email
+                $emailService = new EmailService();
+                $emailEnviado = $emailService->enviarRecuperacaoSenha($email, $token, $user['nome']);
+                
+                if ($emailEnviado) {
+                    $message = 'Instruções de recuperação foram enviadas para seu email.';
+                    $messageType = 'success';
+                    
+                    // Log de segurança
+                    Security::logSecurityEvent('password_reset_requested', [
+                        'email' => $email,
+                        'user_id' => $user['id']
+                    ]);
+                } else {
+                    $message = 'Erro ao enviar email. Configure o SMTP no EmailService.php';
+                    $messageType = 'warning';
+                }
+            } else {
+                // Por segurança, mostra mensagem genérica mesmo se email não existe
+                $message = 'Instruções de recuperação foram enviadas para seu email (se cadastrado).';
+                $messageType = 'info';
+                
+                // Log de tentativa com email não cadastrado
+                Security::logSecurityEvent('password_reset_unknown_email', [
+                    'email' => $email
+                ]);
+            }
         }
     }
 }
 
+// CSRF Token para o formulário
+$csrf_token = Security::generateCSRFToken();
+
 require 'includes/header.php';
 ?>
 
-<div class="container auth-page">
+<div class="container auth-page" style="margin-top: 50px;">
     <div class="row justify-content-center">
-        <div class="col-md-6">
-            <div class="card shadow-sm auth-card">
+        <div class="col-md-6 col-lg-5">
+            <div class="card shadow-lg auth-card border-0">
+                <div class="card-header bg-primary text-white text-center py-4">
+                    <i class="fas fa-key fa-3x mb-2"></i>
+                    <h3 class="mb-0">Recuperar Senha</h3>
+                    <p class="mb-0 mt-2">Digite seu email para receber instruções</p>
+                </div>
+                
                 <div class="card-body p-5">
-                    <h3 class="card-title text-center mb-4 auth-title">Esqueceu a Senha?</h3>
-                    <?php if($errors): ?>
-                        <div class="alert alert-danger">
-                            <?php echo implode('<br>', $errors); ?>
+                    <?php if ($message): ?>
+                        <div class="alert alert-<?= $messageType ?> alert-dismissible fade show" role="alert">
+                            <?php if ($messageType === 'success'): ?>
+                                <i class="fas fa-check-circle"></i>
+                            <?php elseif ($messageType === 'danger' || $messageType === 'warning'): ?>
+                                <i class="fas fa-exclamation-circle"></i>
+                            <?php else: ?>
+                                <i class="fas fa-info-circle"></i>
+                            <?php endif; ?>
+                            <?= htmlspecialchars($message) ?>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                         </div>
                     <?php endif; ?>
-                    <?php if($success): ?>
-                        <div class="alert alert-success">
-                            <?php echo $success; ?>
+                    
+                    <form method="POST" action="">
+                        <input type="hidden" name="csrf_token" value="<?= $csrf_token ?>">
+                        
+                        <div class="mb-4">
+                            <label for="email" class="form-label fw-bold">
+                                <i class="fas fa-envelope text-primary"></i> Email
+                            </label>
+                            <input 
+                                type="email" 
+                                class="form-control form-control-lg" 
+                                id="email" 
+                                name="email" 
+                                placeholder="seu-email@exemplo.com"
+                                required
+                                autofocus
+                            >
+                            <small class="form-text text-muted">
+                                Enviaremos um link de recuperação para este email
+                            </small>
                         </div>
-                    <?php endif; ?>
-                    <form method="post" novalidate>
-                        <div class="mb-3">
-                            <label for="email" class="form-label">E-mail</label>
-                            <input type="email" name="email" id="email" class="form-control" required>
+                        
+                        <div class="d-grid mb-3">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-paper-plane"></i> Enviar Link de Recuperação
+                            </button>
                         </div>
-                        <div class="d-grid">
-                            <button type="submit" class="btn btn-primary">Enviar Link de Redefinicao</button>
+                        
+                        <div class="text-center">
+                            <a href="login.php" class="text-decoration-none">
+                                <i class="fas fa-arrow-left"></i> Voltar para Login
+                            </a>
                         </div>
                     </form>
+                    
+                    <hr class="my-4">
+                    
+                    <div class="alert alert-info mb-0" role="alert">
+                        <h6 class="alert-heading">
+                            <i class="fas fa-info-circle"></i> Informações Importantes
+                        </h6>
+                        <ul class="mb-0 small">
+                            <li>O link de recuperação expira em <strong>1 hora</strong></li>
+                            <li>Verifique sua caixa de spam se não receber o email</li>
+                            <li>Configure o SMTP em <code>includes/EmailService.php</code></li>
+                        </ul>
+                    </div>
                 </div>
             </div>
         </div>

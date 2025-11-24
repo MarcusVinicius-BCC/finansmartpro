@@ -1,6 +1,7 @@
 <?php
 require_once 'includes/db.php';
-session_start();
+require_once 'includes/security.php';
+require_once 'includes/Pagination.php';
 
 if (!isset($_SESSION['user_id'])) {
     header('Location: login.php');
@@ -11,6 +12,16 @@ $user_id = $_SESSION['user_id'];
 
 // Processar ações
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // Validar CSRF
+    if (!Security::validateCSRFToken($_POST['csrf_token'] ?? '')) {
+        Security::logSecurityEvent('csrf_validation_failed', [
+            'module' => 'planejamento',
+            'action' => $_POST['action'] ?? 'unknown',
+            'user_id' => $user_id
+        ]);
+        die('Token CSRF inválido. Recarregue a página.');
+    }
+    
     if (isset($_POST['action']) && $_POST['action'] === 'salvar_cenario') {
         $sql = "INSERT INTO planejamento_cenarios (id_usuario, nome, descricao, tipo, valor_base, percentual_variacao, resultado_calculado) 
                 VALUES (?, ?, ?, ?, ?, ?, ?)";
@@ -208,9 +219,9 @@ include 'includes/header.php';
                                                             <?= ucfirst($cen['tipo']) ?>
                                                         </span>
                                                     </td>
-                                                    <td>R$ <?= number_format($cen['valor_base'], 2, ',', '.') ?></td>
+                                                    <td><?= fmt_currency($cen['valor_base']) ?></td>
                                                     <td><?= number_format($cen['percentual_variacao'], 1, ',', '.') ?>%</td>
-                                                    <td class="fw-bold text-success">R$ <?= number_format($cen['resultado_calculado'], 2, ',', '.') ?></td>
+                                                    <td class="fw-bold text-success"><?= fmt_currency($cen['resultado_calculado']) ?></td>
                                                     <td><?= date('d/m/Y', strtotime($cen['data_criacao'])) ?></td>
                                                     <td>
                                                         <form method="post" style="display:inline;" onsubmit="return confirm('Excluir este cenário?')">

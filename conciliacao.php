@@ -1,6 +1,7 @@
 <?php
 require_once 'includes/db.php';
-session_start();
+require_once 'includes/security.php';
+require_once 'includes/Pagination.php';
 
 if (!isset($_SESSION['user_id'])) {
     header('Location: login.php');
@@ -11,6 +12,16 @@ $user_id = $_SESSION['user_id'];
 
 // Processar conciliação
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // Validar CSRF
+    if (!Security::validateCSRFToken($_POST['csrf_token'] ?? '')) {
+        Security::logSecurityEvent('csrf_validation_failed', [
+            'module' => 'conciliacao',
+            'action' => $_POST['action'] ?? 'unknown',
+            'user_id' => $user_id
+        ]);
+        die('Token CSRF inválido. Recarregue a página.');
+    }
+    
     if (isset($_POST['action']) && $_POST['action'] === 'conciliar') {
         $sql = "INSERT INTO conciliacoes (id_usuario, id_conta, saldo_sistema, saldo_real, divergencia, observacoes, data_conciliacao) 
                 VALUES (?, ?, ?, ?, ?, ?, NOW())";
@@ -284,14 +295,14 @@ include 'includes/header.php';
                                                 <strong><?= htmlspecialchars($h['conta_nome']) ?></strong>
                                                 <br><small class="text-muted"><?= $h['banco'] ?></small>
                                             </td>
-                                            <td>R$ <?= number_format($h['saldo_sistema'], 2, ',', '.') ?></td>
-                                            <td>R$ <?= number_format($h['saldo_real'], 2, ',', '.') ?></td>
+                                            <td><?= fmt_currency($h['saldo_sistema']) ?></td>
+                                            <td><?= fmt_currency($h['saldo_real']) ?></td>
                                             <td>
                                                 <?php
                                                 $classe = abs($h['divergencia']) < 0.01 ? 'success' : (abs($h['divergencia']) < 10 ? 'warning' : 'danger');
                                                 ?>
                                                 <span class="badge bg-<?= $classe ?>">
-                                                    R$ <?= number_format($h['divergencia'], 2, ',', '.') ?>
+                                                    <?= fmt_currency($h['divergencia']) ?>
                                                 </span>
                                             </td>
                                             <td>

@@ -9,24 +9,52 @@ if (!isset($_SESSION['user_id'])) {
 
 require_once 'includes/db.php';
 require_once 'includes/currency.php';
+require_once 'includes/security.php';
+require_once 'includes/validator.php';
+require_once 'includes/Cache.php';
 $user_id = $_SESSION['user_id'];
+
+// Inicializar cache
+$cache = new Cache('cache/', 900); // 15 minutos
 
 // Processar ações (Adicionar, Editar, Excluir)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
     
+    // Validar CSRF
+    if (!Security::validateCSRFToken($_POST['csrf_token'] ?? '')) {
+        Security::logSecurityEvent('csrf_validation_failed', [
+            'module' => 'orcamento',
+            'action' => $action,
+            'user_id' => $user_id
+        ]);
+        die('Token CSRF inválido. Recarregue a página.');
+    }
+    
     try {
         if ($action === 'create') {
             $stmt = $pdo->prepare("INSERT INTO orcamentos (id_usuario, id_categoria, mes_ano, valor_limite) VALUES (?, ?, ?, ?)");
             $stmt->execute([$user_id, $_POST['id_categoria'], $_POST['mes_ano'], $_POST['valor_limite']]);
+            
+            // Invalidar cache
+            $cache->delete("orcamentos_{$user_id}_{$_POST['mes_ano']}");
+            
             $_SESSION['success_message'] = 'Orçamento criado com sucesso!';
         } elseif ($action === 'update') {
             $stmt = $pdo->prepare("UPDATE orcamentos SET id_categoria = ?, valor_limite = ? WHERE id = ? AND id_usuario = ?");
             $stmt->execute([$_POST['id_categoria'], $_POST['valor_limite'], $_POST['id'], $user_id]);
+            
+            // Invalidar cache do mês atual
+            $cache->invalidatePattern("^orcamentos_{$user_id}_");
+            
             $_SESSION['success_message'] = 'Orçamento atualizado com sucesso!';
         } elseif ($action === 'delete') {
             $stmt = $pdo->prepare("DELETE FROM orcamentos WHERE id = ? AND id_usuario = ?");
             $stmt->execute([$_POST['id'], $user_id]);
+            
+            // Invalidar cache
+            $cache->invalidatePattern("^orcamentos_{$user_id}_");
+            
             $_SESSION['success_message'] = 'Orçamento excluído com sucesso!';
         }
         
@@ -54,31 +82,36 @@ try {
         FOREIGN KEY (id_categoria) REFERENCES categorias(id) ON DELETE CASCADE
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 
-    // Buscar orçamentos com gastos
-    $stmt = $pdo->prepare("
-        SELECT 
-            o.id, 
-            o.id_categoria, 
-            o.valor_limite, 
-            c.nome as categoria_nome,
-            COALESCE(SUM(CASE WHEN l.tipo = 'despesa' THEN l.valor ELSE 0 END), 0) as gasto_atual
-        FROM orcamentos o
-        JOIN categorias c ON o.id_categoria = c.id
-        LEFT JOIN lancamentos l ON l.id_categoria = o.id_categoria 
-            AND l.id_usuario = o.id_usuario 
-            AND DATE_FORMAT(l.data, '%Y-%m') = o.mes_ano
-        WHERE o.id_usuario = ? AND o.mes_ano = ?
-        GROUP BY o.id, o.id_categoria, o.valor_limite, c.nome
-    ");
-    $stmt->execute([$user_id, $month]);
-    $orcamentos = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-    // Calcular progresso
-    foreach ($orcamentos as &$orc) {
-        $orc['progresso'] = ($orc['valor_limite'] > 0) ? ($orc['gasto_atual'] / $orc['valor_limite']) * 100 : 0;
-        $orc['restante'] = $orc['valor_limite'] - $orc['gasto_atual'];
-        $orc['status'] = $orc['progresso'] >= 100 ? 'danger' : ($orc['progresso'] >= 80 ? 'warning' : 'success');
-    }
+    // Buscar orçamentos com gastos usando cache
+    $cache_key = "orcamentos_{$user_id}_{$month}";
+    $orcamentos = $cache->remember($cache_key, function() use ($pdo, $user_id, $month) {
+        $stmt = $pdo->prepare("
+            SELECT 
+                o.id, 
+                o.id_categoria, 
+                o.valor_limite, 
+                c.nome as categoria_nome,
+                COALESCE(SUM(CASE WHEN l.tipo = 'despesa' THEN l.valor ELSE 0 END), 0) as gasto_atual
+            FROM orcamentos o
+            JOIN categorias c ON o.id_categoria = c.id
+            LEFT JOIN lancamentos l ON l.id_categoria = o.id_categoria 
+                AND l.id_usuario = o.id_usuario 
+                AND DATE_FORMAT(l.data, '%Y-%m') = o.mes_ano
+            WHERE o.id_usuario = ? AND o.mes_ano = ?
+            GROUP BY o.id, o.id_categoria, o.valor_limite, c.nome
+        ");
+        $stmt->execute([$user_id, $month]);
+        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        // Calcular progresso
+        foreach ($results as &$orc) {
+            $orc['progresso'] = ($orc['valor_limite'] > 0) ? ($orc['gasto_atual'] / $orc['valor_limite']) * 100 : 0;
+            $orc['restante'] = $orc['valor_limite'] - $orc['gasto_atual'];
+            $orc['status'] = $orc['progresso'] >= 100 ? 'danger' : ($orc['progresso'] >= 80 ? 'warning' : 'success');
+        }
+        
+        return $results;
+    }, 900); // 15 minutos
 
     // Buscar categorias de despesa para formulário
     $stmt = $pdo->prepare("

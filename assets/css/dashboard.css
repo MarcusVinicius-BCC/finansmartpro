@@ -19,14 +19,18 @@
 
 .rate-item .currency {
     display: block;
-    font-weight: bold;
+    font-weight: 600;
+    font-family: var(--font-primary);
     color: #0088ff;
     margin-bottom: 0.5rem;
+    font-size: 0.9rem;
 }
 
 .rate-item .value {
     display: block;
     font-size: 1.25rem;
+    font-family: var(--font-display);
+    font-weight: 700;
     color: hsl(0, 0%, 0%);
 }
 
@@ -40,9 +44,20 @@
     transform: translateY(-5px);
 }
 
+.card-title {
+    font-family: var(--font-headings);
+    font-weight: 600;
+}
+
 .total-balance-card h6,
 .total-balance-card h3 {
-    color: rgb(0, 0, 0) !important; /* Ensure text is white for readability on primary background */
+    color: rgb(0, 0, 0) !important;
+    font-family: var(--font-display);
+}
+
+.total-balance-card h3 {
+    font-weight: 800;
+    letter-spacing: -0.02em;
 }
 
 .bg-primary,

@@ -1,6 +1,7 @@
 <?php
 require_once 'includes/db.php';
-session_start();
+require_once 'includes/security.php';
+require_once 'includes/validator.php';
 
 if (!isset($_SESSION['user_id'])) {
     header('Location: login.php');
@@ -12,6 +13,16 @@ $user_id = $_SESSION['user_id'];
 // Processar ações
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['action'])) {
+        // Validar CSRF
+        if (!Security::validateCSRFToken($_POST['csrf_token'] ?? '')) {
+            Security::logSecurityEvent('csrf_validation_failed', [
+                'module' => 'familia',
+                'action' => $_POST['action'],
+                'user_id' => $user_id
+            ]);
+            die('Token CSRF inválido. Recarregue a página.');
+        }
+        
         if ($_POST['action'] === 'convidar') {
             // Verificar se usuário existe
             $sql = "SELECT id FROM usuarios WHERE email = ?";

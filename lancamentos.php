@@ -1,12 +1,25 @@
 <?php
 require 'includes/db.php';
-session_start();
+require_once 'includes/security.php';
+require_once 'includes/validator.php';
 if(!isset($_SESSION['user_id'])) header('Location: login.php');
 $user_id = $_SESSION['user_id'];
 
 // Processar formulários POST
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
+    
+    // Validar CSRF (exceto para export_csv que pode usar token diferente)
+    if ($action !== 'export_csv') {
+        if (!Security::validateCSRFToken($_POST['csrf_token'] ?? '')) {
+            Security::logSecurityEvent('csrf_validation_failed', [
+                'module' => 'lancamentos',
+                'action' => $action,
+                'user_id' => $user_id
+            ]);
+            die('Token CSRF inválido. Recarregue a página.');
+        }
+    }
     
     // Retorno para requisições AJAX
     $isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && 
@@ -137,6 +150,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     
     if ($action === 'add' || $action === 'edit') {
+        // Invalidar cache do dashboard ao modificar lançamentos
+        require_once 'includes/Cache.php';
+        $cache = new Cache('cache/');
+        $cache->invalidatePattern("^dashboard_summary_{$user_id}_");
+        
+        // Invalidar cache de orçamento também (se for despesa)
+        if (($_POST['tipo'] ?? '') === 'despesa') {
+            $mes_ano = date('Y-m', strtotime($_POST['data']));
+            $cache->delete("orcamentos_{$user_id}_{$mes_ano}");
+        }
+        
         $data = [
             'descricao' => $_POST['descricao'],
             'valor' => $_POST['valor'],
@@ -176,6 +200,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     
     elseif ($action === 'delete') {
+        // Invalidar cache do dashboard ao deletar lançamento
+        require_once 'includes/Cache.php';
+        $cache = new Cache('cache/');
+        $cache->invalidatePattern("^dashboard_summary_{$user_id}_");
+        
         try {
             $stmt = $pdo->prepare("DELETE FROM lancamentos WHERE id = ? AND id_usuario = ?");
             $success = $stmt->execute([$_POST['id'], $user_id]);
@@ -252,20 +281,70 @@ if ($filter_max_value) {
 
 $sql .= ' ORDER BY data DESC';
 
+// Contar total de registros (antes da paginação)
+$countSql = str_replace('SELECT l.*, c.nome as categoria_nome FROM', 'SELECT COUNT(*) FROM', $sql);
+$countStmt = $pdo->prepare($countSql);
+$countStmt->execute($params);
+$totalRecords = $countStmt->fetchColumn();
+
+// Configurar paginação
+require_once 'includes/Pagination.php';
+$currentPage = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+$pagination = new Pagination($totalRecords, 50, $currentPage);
+
+// Adicionar LIMIT e OFFSET à query
+$sql .= ' LIMIT ' . $pagination->getLimit() . ' OFFSET ' . $pagination->getOffset();
+
 $stmt = $pdo->prepare($sql);
 $stmt->execute($params);
 $lancamentos = $stmt->fetchAll();
 
-// Estatísticas dos lançamentos filtrados
-$total_receitas = 0;
-$total_despesas = 0;
-foreach ($lancamentos as $l) {
-    if ($l['tipo'] === 'receita') {
-        $total_receitas += $l['valor'];
-    } else {
-        $total_despesas += $l['valor'];
-    }
+// Estatísticas dos lançamentos filtrados (TOTAL, não só da página)
+$statsSql = 'SELECT 
+    SUM(CASE WHEN tipo = "receita" THEN valor ELSE 0 END) as total_receitas,
+    SUM(CASE WHEN tipo = "despesa" THEN valor ELSE 0 END) as total_despesas
+    FROM lancamentos l WHERE l.id_usuario = ?';
+$statsParams = [$user_id];
+
+// Aplicar mesmos filtros nas estatísticas
+if ($search) {
+    $statsSql .= ' AND l.descricao LIKE ?';
+    $statsParams[] = "%$search%";
 }
+if ($filter_type) {
+    $statsSql .= ' AND l.tipo = ?';
+    $statsParams[] = $filter_type;
+}
+if ($filter_category) {
+    $statsSql .= ' AND l.id_categoria = ?';
+    $statsParams[] = $filter_category;
+}
+if ($filter_currency) {
+    $statsSql .= ' AND l.moeda = ?';
+    $statsParams[] = $filter_currency;
+}
+if ($filter_date_start) {
+    $statsSql .= ' AND l.data >= ?';
+    $statsParams[] = $filter_date_start;
+}
+if ($filter_date_end) {
+    $statsSql .= ' AND l.data <= ?';
+    $statsParams[] = $filter_date_end;
+}
+if ($filter_min_value) {
+    $statsSql .= ' AND l.valor >= ?';
+    $statsParams[] = $filter_min_value;
+}
+if ($filter_max_value) {
+    $statsSql .= ' AND l.valor <= ?';
+    $statsParams[] = $filter_max_value;
+}
+
+$statsStmt = $pdo->prepare($statsSql);
+$statsStmt->execute($statsParams);
+$stats = $statsStmt->fetch();
+$total_receitas = $stats['total_receitas'] ?? 0;
+$total_despesas = $stats['total_despesas'] ?? 0;
 
 // Categorias do usuário + categorias padrão do sistema
 $stmt = $pdo->prepare('SELECT * FROM categorias WHERE id_usuario = ? OR id_usuario = 0 OR id_usuario IS NULL ORDER BY nome');
@@ -382,27 +461,48 @@ require_once 'includes/currency.php';
   <?php endif; ?>
   
   <div class="card p-3">
+    <!-- Informações de Paginação -->
+    <div class="mb-3">
+      <?= $pagination->renderInfo() ?>
+    </div>
+    
     <table class="table table-hover">
       <thead><tr><th>Data</th><th>Descrição</th><th>Categoria</th><th>Valor</th><th>Ações</th></tr></thead>
       <tbody>
-        <?php foreach($lancamentos as $l): ?>
-            <tr>
-            <td><?= $l['data'] ?></td>
-            <td><?= htmlspecialchars($l['descricao']) ?></td>
-            <td><?= htmlspecialchars($l['categoria_nome']) ?></td>
-            <td class="<?= $l['tipo']=='receita'?'text-success':'text-danger' ?>"><?= $l['tipo']=='receita' ? '+' : '-' ?> <?= format_currency($l['valor'], $l['moeda']) ?></td>
-            <td class="text-end">
-              <button class="btn btn-sm btn-info" onclick="openEdit('<?= htmlspecialchars(json_encode($l), ENT_QUOTES) ?>')"><i class="fas fa-edit"></i></button>
-              <form method="post" style="display:inline">
-                <input type="hidden" name="action" value="delete">
-                <input type="hidden" name="id" value="<?= $l['id'] ?>">
-                <button class="btn btn-sm btn-danger" onclick="return confirm('Excluir?')"><i class="fas fa-trash"></i></button>
-              </form>
+        <?php if (empty($lancamentos)): ?>
+          <tr>
+            <td colspan="5" class="text-center text-muted py-4">
+              <i class="fas fa-inbox fa-3x mb-3 d-block"></i>
+              Nenhum lançamento encontrado
             </td>
           </tr>
-        <?php endforeach; ?>
+        <?php else: ?>
+          <?php foreach($lancamentos as $l): ?>
+              <tr>
+              <td><?= date('d/m/Y', strtotime($l['data'])) ?></td>
+              <td><?= htmlspecialchars($l['descricao']) ?></td>
+              <td><?= htmlspecialchars($l['categoria_nome']) ?></td>
+              <td class="<?= $l['tipo']=='receita'?'text-success':'text-danger' ?>"><?= $l['tipo']=='receita' ? '+' : '-' ?> <?= format_currency($l['valor'], $l['moeda']) ?></td>
+              <td class="text-end">
+                <button class="btn btn-sm btn-info" onclick="openEdit('<?= htmlspecialchars(json_encode($l), ENT_QUOTES) ?>')"><i class="fas fa-edit"></i></button>
+                <form method="post" style="display:inline">
+                  <input type="hidden" name="action" value="delete">
+                  <input type="hidden" name="id" value="<?= $l['id'] ?>">
+                  <button class="btn btn-sm btn-danger" onclick="return confirm('Excluir?')"><i class="fas fa-trash"></i></button>
+                </form>
+              </td>
+            </tr>
+          <?php endforeach; ?>
+        <?php endif; ?>
       </tbody>
     </table>
+    
+    <!-- Paginador -->
+    <?php if ($totalRecords > 0): ?>
+      <div class="mt-3">
+        <?= $pagination->render() ?>
+      </div>
+    <?php endif; ?>
   </div>
 </div>
 

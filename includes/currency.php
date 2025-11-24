@@ -1,15 +1,14 @@
 <?php
+require_once __DIR__ . '/Cache.php';
+
 function get_rates($base='BRL') {
-    $cache_file = __DIR__ . '/../cache/rates.json';
-    $cache_ttl = 3600; // 1 hora
-    $now = time();
+    $cache = new Cache(__DIR__ . '/../cache/', 3600); // 1 hora TTL
+    $cacheKey = "currency_rates_{$base}";
     
-    // Tentar ler cache válido
-    if(file_exists($cache_file)) {
-        $data = json_decode(file_get_contents($cache_file), true);
-        if($data && isset($data['timestamp'], $data['rates']) && ($now - $data['timestamp'] < $cache_ttl)) {
-            return $data['rates'];
-        }
+    // Tentar obter do cache
+    $cachedRates = $cache->get($cacheKey);
+    if ($cachedRates !== null) {
+        return $cachedRates;
     }
     
     // Buscar taxas atualizadas de API externa
@@ -26,18 +25,14 @@ function get_rates($base='BRL') {
     if($res && $httpCode === 200) {
         $json = json_decode($res, true);
         if(isset($json['rates'])) {
-            $out = [
-                'timestamp' => $now, 
-                'base' => $base, 
-                'rates' => $json['rates']
-            ];
             // Salvar no cache
-            @file_put_contents($cache_file, json_encode($out));
+            $cache->set($cacheKey, $json['rates'], 3600);
             return $json['rates'];
         }
     }
     
-    // Fallback: usar cache expirado se disponível
+    // Fallback: tentar cache expirado (ainda pode estar no arquivo)
+    $cache_file = __DIR__ . '/../cache/rates.json';
     if(file_exists($cache_file)) {
         $data = json_decode(file_get_contents($cache_file), true);
         if($data && isset($data['rates'])) {
@@ -48,12 +43,17 @@ function get_rates($base='BRL') {
     
     // Último recurso: taxas fixas aproximadas
     error_log("ERRO: Não foi possível obter taxas de câmbio. Usando taxas fixas de fallback.");
-    return [
+    $fallbackRates = [
         'USD' => 0.20,
         'EUR' => 0.18,
         'GBP' => 0.16,
         'BRL' => 1.0
     ];
+    
+    // Salvar fallback no cache por 5 minutos
+    $cache->set($cacheKey, $fallbackRates, 300);
+    
+    return $fallbackRates;
 }
 
 function convert_amount($amount, $from, $to='BRL') {

@@ -1,2 +1,48 @@
+# Variáveis de Ambiente
+.env
+.env.local
+.env.production
+
+# Uploads e Dados do Usuário
+uploads/**
+!uploads/.htaccess
+!uploads/anexos/.gitkeep
+
+# Backups
+backups/**
+!backups/.gitkeep
+
+# Logs
+logs/**
+!logs/.htaccess
+!logs/.gitkeep
+
+# Cache
 cache/
-vendor/
+cache/**
+!cache/.gitkeep
+
+# Composer
+/vendor/
+composer.lock
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Sistema Operacional
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Temporários
+*.tmp
+*.log
+*.sql
+
+# Node (se usar)
+node_modules/
+package-lock.json

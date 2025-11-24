@@ -1,6 +1,8 @@
 <?php
 require_once 'includes/db.php';
-session_start();
+require_once 'includes/security.php';
+require_once 'includes/validator.php';
+require_once 'includes/AntivirusScanner.php';
 
 if (!isset($_SESSION['user_id'])) {
     header('Location: login.php');
@@ -11,6 +13,16 @@ $user_id = $_SESSION['user_id'];
 
 // Processar upload
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['arquivo'])) {
+    // Validar CSRF
+    if (!Security::validateCSRFToken($_POST['csrf_token'] ?? '')) {
+        Security::logSecurityEvent('csrf_validation_failed', [
+            'module' => 'importar',
+            'user_id' => $user_id
+        ]);
+        header('Location: importar.php?error=csrf');
+        exit;
+    }
+    
     $arquivo = $_FILES['arquivo'];
     $tipo = $_POST['tipo_arquivo'];
     
@@ -19,6 +31,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['arquivo'])) {
         
         // Validar extensão
         if (($tipo === 'ofx' && $extensao === 'ofx') || ($tipo === 'csv' && $extensao === 'csv')) {
+            
+            // SCAN ANTIVÍRUS
+            $scanResult = AntivirusScanner::scanFile($arquivo['tmp_name']);
+            
+            if (!$scanResult['safe']) {
+                Security::logSecurityEvent('malware_detected_import', [
+                    'user_id' => $user_id,
+                    'file_name' => $arquivo['name'],
+                    'threat' => $scanResult['threat'] ?? 'Desconhecido',
+                    'scanner' => $scanResult['scanner'] ?? 'unknown'
+                ]);
+                
+                @unlink($arquivo['tmp_name']);
+                header('Location: importar.php?error=virus');
+                exit;
+            }
+            
             $conteudo = file_get_contents($arquivo['tmp_name']);
             $lancamentos_importados = 0;
             $erros = [];
@@ -229,7 +258,9 @@ function processarCSV($conteudo, $user_id, $pdo) {
             $errors = [
                 'formato' => 'Formato de arquivo inválido. Use apenas arquivos OFX ou CSV.',
                 'upload' => 'Erro ao fazer upload do arquivo. Tente novamente.',
-                'processamento' => 'Erro ao processar arquivo: ' . ($_GET['msg'] ?? 'desconhecido')
+                'processamento' => 'Erro ao processar arquivo: ' . ($_GET['msg'] ?? 'desconhecido'),
+                'virus' => '⚠️ AMEAÇA DETECTADA! O arquivo contém malware e foi bloqueado.',
+                'csrf' => 'Token de segurança inválido. Recarregue a página.'
             ];
             echo '<i class="fas fa-times-circle me-2"></i>' . ($errors[$_GET['error']] ?? 'Erro desconhecido.');
             ?>

@@ -2,10 +2,22 @@
 window.toggleSidebar = function () {
     const sidebar = document.getElementById('sidebar');
     const backdrop = document.getElementById('sidebarBackdrop');
+    const toggleBtn = document.querySelector('.sidebar-toggle-btn');
 
     if (sidebar && backdrop) {
-        sidebar.classList.toggle('show');
+        const isOpen = sidebar.classList.toggle('show');
         backdrop.classList.toggle('show');
+
+        // Atualizar ícone do botão
+        if (toggleBtn) {
+            const icon = toggleBtn.querySelector('i');
+            if (icon) {
+                icon.className = isOpen ? 'fas fa-times' : 'fas fa-bars';
+            }
+        }
+
+        // Bloquear scroll do body quando aberto
+        document.body.style.overflow = isOpen ? 'hidden' : '';
     }
 }
 
@@ -13,28 +25,35 @@ document.addEventListener('DOMContentLoaded', function () {
     const sidebar = document.getElementById('sidebar');
     const backdrop = document.getElementById('sidebarBackdrop');
 
+    // Criar botão toggle se não existir
+    if (!document.querySelector('.sidebar-toggle-btn') && sidebar) {
+        const toggleButton = document.createElement('button');
+        toggleButton.className = 'sidebar-toggle-btn';
+        toggleButton.setAttribute('aria-label', 'Abrir menu');
+        toggleButton.innerHTML = '<i class="fas fa-bars"></i>';
+        toggleButton.addEventListener('click', toggleSidebar);
+        document.body.appendChild(toggleButton);
+    }
+
 
     if (backdrop) {
         backdrop.addEventListener('click', toggleSidebar);
     }
 
-    // Fechar sidebar quando clicar em um link (mobile)
+    // Fechar sidebar quando clicar em um link
     const sidebarLinks = sidebar?.querySelectorAll('.nav-link');
     sidebarLinks?.forEach(link => {
         link.addEventListener('click', () => {
-            if (window.innerWidth < 992 && sidebar.classList.contains('show')) {
+            if (sidebar.classList.contains('show')) {
                 toggleSidebar();
             }
         });
     });
 
-    // Adicionar botão de toggle no mobile se não existir
-    /* if (!toggleBtn && sidebar) {
-        const toggleButton = document.createElement('button');
-        toggleButton.className = 'sidebar-toggle btn btn-primary position-fixed';
-        toggleButton.style.cssText = 'top: 1rem; left: 1rem; z-index: 1029;';
-        toggleButton.innerHTML = '<i class="fas fa-bars"></i>';
-        toggleButton.addEventListener('click', toggleSidebar);
-        document.body.appendChild(toggleButton);
-    } */
+    // Fechar sidebar com tecla ESC
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && sidebar?.classList.contains('show')) {
+            toggleSidebar();
+        }
+    });
 });

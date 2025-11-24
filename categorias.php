@@ -1,13 +1,28 @@
 <?php
 require 'includes/db.php';
 require 'includes/currency.php';
-session_start();
+require_once 'includes/security.php';
+require_once 'includes/validator.php';
+require_once 'includes/Cache.php';
 if(!isset($_SESSION['user_id'])) header('Location: login.php');
 $user_id = $_SESSION['user_id'];
+
+// Inicializar cache
+$cache = new Cache('cache/', 1800); // 30 minutos
 
 // Processar ações
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
+    
+    // Validar CSRF
+    if (!Security::validateCSRFToken($_POST['csrf_token'] ?? '')) {
+        Security::logSecurityEvent('csrf_validation_failed', [
+            'module' => 'categorias',
+            'action' => $action,
+            'user_id' => $user_id
+        ]);
+        die('Token CSRF inválido. Recarregue a página.');
+    }
     
     if ($action === 'create') {
         $nome = $_POST['nome'];
@@ -20,6 +35,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 VALUES (?, ?, ?, ?, ?, ?)";
         $stmt = $pdo->prepare($sql);
         $stmt->execute([$user_id, $nome, $tipo, $icone, $cor, $descricao]);
+        
+        // Invalidar cache
+        $cache->delete("categorias_{$user_id}");
         
         header('Location: categorias.php?success=created');
         exit;
@@ -37,6 +55,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 WHERE id = ? AND id_usuario = ?";
         $stmt = $pdo->prepare($sql);
         $stmt->execute([$nome, $tipo, $icone, $cor, $descricao, $id, $user_id]);
+        
+        // Invalidar cache
+        $cache->delete("categorias_{$user_id}");
         
         header('Location: categorias.php?success=updated');
         exit;
@@ -57,21 +78,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt = $pdo->prepare($sql);
         $stmt->execute([$id, $user_id]);
         
+        // Invalidar cache
+        $cache->delete("categorias_{$user_id}");
+        
         header('Location: categorias.php?success=deleted');
         exit;
     }
 }
 
-// Buscar categorias
-$sql = "SELECT c.*, 
-        (SELECT COUNT(*) FROM lancamentos WHERE id_categoria = c.id) as total_uso,
-        (SELECT SUM(valor) FROM lancamentos WHERE id_categoria = c.id) as total_valor
-        FROM categorias c 
-        WHERE c.id_usuario = ? 
-        ORDER BY c.tipo, c.nome";
-$stmt = $pdo->prepare($sql);
-$stmt->execute([$user_id]);
-$categorias = $stmt->fetchAll();
+// Buscar categorias com cache
+$cache_key = "categorias_{$user_id}";
+$categorias = $cache->remember($cache_key, function() use ($pdo, $user_id) {
+    $sql = "SELECT c.*, 
+            (SELECT COUNT(*) FROM lancamentos WHERE id_categoria = c.id) as total_uso,
+            (SELECT SUM(valor) FROM lancamentos WHERE id_categoria = c.id) as total_valor
+            FROM categorias c 
+            WHERE c.id_usuario = ? 
+            ORDER BY c.tipo, c.nome";
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute([$user_id]);
+    return $stmt->fetchAll();
+}, 1800); // 30 minutos
 
 $categorias_receita = array_filter($categorias, fn($c) => $c['tipo'] === 'receita');
 $categorias_despesa = array_filter($categorias, fn($c) => $c['tipo'] === 'despesa');

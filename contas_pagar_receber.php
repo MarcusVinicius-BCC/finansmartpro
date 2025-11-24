@@ -1,6 +1,8 @@
 <?php
 require_once 'includes/db.php';
-session_start();
+require_once 'includes/security.php';
+require_once 'includes/validator.php';
+require_once 'includes/Pagination.php';
 
 if (!isset($_SESSION['user_id'])) {
     header('Location: login.php');
@@ -9,9 +11,22 @@ if (!isset($_SESSION['user_id'])) {
 
 $user_id = $_SESSION['user_id'];
 $aba_ativa = $_GET['aba'] ?? 'pagar';
+$pagina_pagar = max(1, intval($_GET['pagina_pagar'] ?? 1));
+$pagina_receber = max(1, intval($_GET['pagina_receber'] ?? 1));
+$itens_por_pagina = 30;
 
 // Processar ações
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // Validar CSRF
+    if (!Security::validateCSRFToken($_POST['csrf_token'] ?? '')) {
+        Security::logSecurityEvent('csrf_validation_failed', [
+            'module' => 'contas_pagar_receber',
+            'action' => $_POST['action'] ?? 'unknown',
+            'user_id' => $user_id
+        ]);
+        die('Token CSRF inválido. Recarregue a página.');
+    }
+    
     $action = $_POST['action'];
     
     // Contas a Pagar
@@ -183,7 +198,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// Buscar contas a pagar
+// Contar total de contas a pagar
+$sql_count_pagar = "SELECT COUNT(*) FROM contas_pagar WHERE id_usuario = ?";
+$stmt = $pdo->prepare($sql_count_pagar);
+$stmt->execute([$user_id]);
+$total_contas_pagar = $stmt->fetchColumn();
+
+// Criar paginação para contas a pagar
+$pagination_pagar = new Pagination($total_contas_pagar, $itens_por_pagina, $pagina_pagar, 'contas_pagar_receber.php?aba=pagar');
+
+// Buscar contas a pagar com paginação
 $sql = "SELECT cp.*, c.nome as categoria_nome, c.cor as categoria_cor,
         CASE 
             WHEN cp.status = 'pago' THEN 'pago'
@@ -193,12 +217,22 @@ $sql = "SELECT cp.*, c.nome as categoria_nome, c.cor as categoria_cor,
         FROM contas_pagar cp
         LEFT JOIN categorias c ON cp.id_categoria = c.id
         WHERE cp.id_usuario = ?
-        ORDER BY cp.vencimento ASC";
+        ORDER BY cp.vencimento ASC
+        LIMIT {$pagination_pagar->getLimit()} OFFSET {$pagination_pagar->getOffset()}";
 $stmt = $pdo->prepare($sql);
 $stmt->execute([$user_id]);
 $contas_pagar = $stmt->fetchAll();
 
-// Buscar contas a receber
+// Contar total de contas a receber
+$sql_count_receber = "SELECT COUNT(*) FROM contas_receber WHERE id_usuario = ?";
+$stmt = $pdo->prepare($sql_count_receber);
+$stmt->execute([$user_id]);
+$total_contas_receber = $stmt->fetchColumn();
+
+// Criar paginação para contas a receber
+$pagination_receber = new Pagination($total_contas_receber, $itens_por_pagina, $pagina_receber, 'contas_pagar_receber.php?aba=receber');
+
+// Buscar contas a receber com paginação
 $sql = "SELECT cr.*, c.nome as categoria_nome, c.cor as categoria_cor,
         CASE 
             WHEN cr.status = 'recebido' THEN 'recebido'
@@ -208,7 +242,8 @@ $sql = "SELECT cr.*, c.nome as categoria_nome, c.cor as categoria_cor,
         FROM contas_receber cr
         LEFT JOIN categorias c ON cr.id_categoria = c.id
         WHERE cr.id_usuario = ?
-        ORDER BY cr.vencimento ASC";
+        ORDER BY cr.vencimento ASC
+        LIMIT {$pagination_receber->getLimit()} OFFSET {$pagination_receber->getOffset()}";
 $stmt = $pdo->prepare($sql);
 $stmt->execute([$user_id]);
 $contas_receber = $stmt->fetchAll();
@@ -219,11 +254,26 @@ $stmt = $pdo->prepare($sql);
 $stmt->execute([$user_id]);
 $categorias = $stmt->fetchAll();
 
-// Calcular resumos
-$total_pagar_pendente = array_sum(array_column(array_filter($contas_pagar, fn($c) => $c['status_real'] === 'pendente'), 'valor'));
-$total_pagar_atrasado = array_sum(array_column(array_filter($contas_pagar, fn($c) => $c['status_real'] === 'atrasado'), 'valor'));
-$total_receber_pendente = array_sum(array_column(array_filter($contas_receber, fn($c) => $c['status_real'] === 'pendente'), 'valor'));
-$total_receber_atrasado = array_sum(array_column(array_filter($contas_receber, fn($c) => $c['status_real'] === 'atrasado'), 'valor'));
+// Calcular resumos totais (sem paginação)
+$sql_totais = "SELECT 
+    SUM(CASE WHEN cp.status = 'pendente' AND cp.vencimento >= CURDATE() THEN cp.valor ELSE 0 END) as pagar_pendente,
+    SUM(CASE WHEN cp.status = 'pendente' AND cp.vencimento < CURDATE() THEN cp.valor ELSE 0 END) as pagar_atrasado
+    FROM contas_pagar cp WHERE cp.id_usuario = ?";
+$stmt = $pdo->prepare($sql_totais);
+$stmt->execute([$user_id]);
+$totais_pagar = $stmt->fetch();
+$total_pagar_pendente = $totais_pagar['pagar_pendente'] ?? 0;
+$total_pagar_atrasado = $totais_pagar['pagar_atrasado'] ?? 0;
+
+$sql_totais = "SELECT 
+    SUM(CASE WHEN cr.status = 'pendente' AND cr.vencimento >= CURDATE() THEN cr.valor ELSE 0 END) as receber_pendente,
+    SUM(CASE WHEN cr.status = 'pendente' AND cr.vencimento < CURDATE() THEN cr.valor ELSE 0 END) as receber_atrasado
+    FROM contas_receber cr WHERE cr.id_usuario = ?";
+$stmt = $pdo->prepare($sql_totais);
+$stmt->execute([$user_id]);
+$totais_receber = $stmt->fetch();
+$total_receber_pendente = $totais_receber['receber_pendente'] ?? 0;
+$total_receber_atrasado = $totais_receber['receber_atrasado'] ?? 0;
 
 include 'includes/header.php';
 ?>
@@ -265,7 +315,7 @@ include 'includes/header.php';
             <div class="card bg-danger text-white shadow">
                 <div class="card-body">
                     <h6 class="text-white-50">A Pagar (Pendente)</h6>
-                    <h3 class="mb-0">R$ <?= number_format($total_pagar_pendente, 2, ',', '.') ?></h3>
+                    <h3 class="mb-0"><?= fmt_currency($total_pagar_pendente) ?></h3>
                     <small><i class="fas fa-clock me-1"></i><?= count(array_filter($contas_pagar, fn($c) => $c['status_real'] === 'pendente')) ?> conta(s)</small>
                 </div>
             </div>
@@ -274,7 +324,7 @@ include 'includes/header.php';
             <div class="card bg-warning text-dark shadow">
                 <div class="card-body">
                     <h6 class="text-dark-50">A Pagar (Atrasado)</h6>
-                    <h3 class="mb-0">R$ <?= number_format($total_pagar_atrasado, 2, ',', '.') ?></h3>
+                    <h3 class="mb-0"><?= fmt_currency($total_pagar_atrasado) ?></h3>
                     <small><i class="fas fa-exclamation-triangle me-1"></i><?= count(array_filter($contas_pagar, fn($c) => $c['status_real'] === 'atrasado')) ?> conta(s)</small>
                 </div>
             </div>
@@ -283,7 +333,7 @@ include 'includes/header.php';
             <div class="card bg-success text-white shadow">
                 <div class="card-body">
                     <h6 class="text-white-50">A Receber (Pendente)</h6>
-                    <h3 class="mb-0">R$ <?= number_format($total_receber_pendente, 2, ',', '.') ?></h3>
+                    <h3 class="mb-0"><?= fmt_currency($total_receber_pendente) ?></h3>
                     <small><i class="fas fa-clock me-1"></i><?= count(array_filter($contas_receber, fn($c) => $c['status_real'] === 'pendente')) ?> conta(s)</small>
                 </div>
             </div>
@@ -292,7 +342,7 @@ include 'includes/header.php';
             <div class="card bg-info text-white shadow">
                 <div class="card-body">
                     <h6 class="text-white-50">A Receber (Atrasado)</h6>
-                    <h3 class="mb-0">R$ <?= number_format($total_receber_atrasado, 2, ',', '.') ?></h3>
+                    <h3 class="mb-0"><?= fmt_currency($total_receber_atrasado) ?></h3>
                     <small><i class="fas fa-exclamation-circle me-1"></i><?= count(array_filter($contas_receber, fn($c) => $c['status_real'] === 'atrasado')) ?> conta(s)</small>
                 </div>
             </div>
@@ -361,7 +411,7 @@ include 'includes/header.php';
                                                 <?php endif; ?>
                                             </td>
                                             <td><?= htmlspecialchars($cp['fornecedor'] ?? '-') ?></td>
-                                            <td class="fw-bold">R$ <?= number_format($cp['valor'], 2, ',', '.') ?></td>
+                                            <td class="fw-bold"><?= fmt_currency($cp['valor']) ?></td>
                                             <td>
                                                 <?php
                                                 $badges = [
@@ -395,6 +445,16 @@ include 'includes/header.php';
                                     <?php endforeach; ?>
                                 </tbody>
                             </table>
+                        </div>
+                        
+                        <!-- Info de Paginação -->
+                        <div class="d-flex justify-content-between align-items-center mt-3">
+                            <div>
+                                <?= $pagination_pagar->renderInfo() ?>
+                            </div>
+                            <div>
+                                <?= $pagination_pagar->render() ?>
+                            </div>
                         </div>
                     <?php endif; ?>
                 </div>
@@ -482,6 +542,16 @@ include 'includes/header.php';
                                     <?php endforeach; ?>
                                 </tbody>
                             </table>
+                        </div>
+                        
+                        <!-- Info de Paginação -->
+                        <div class="d-flex justify-content-between align-items-center mt-3">
+                            <div>
+                                <?= $pagination_receber->renderInfo() ?>
+                            </div>
+                            <div>
+                                <?= $pagination_receber->render() ?>
+                            </div>
                         </div>
                     <?php endif; ?>
                 </div>

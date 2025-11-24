@@ -8,10 +8,26 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 require_once 'includes/db.php';
+require_once 'includes/security.php';
+require_once 'includes/validator.php';
+require_once 'includes/Cache.php';
+
+// Inicializar cache
+$cache = new Cache('cache/', 900); // 15 minutos
 
 // Processar formulários
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['action'])) {
+        // Validar CSRF
+        if (!Security::validateCSRFToken($_POST['csrf_token'] ?? '')) {
+            Security::logSecurityEvent('csrf_validation_failed', [
+                'module' => 'investimentos',
+                'action' => $_POST['action'],
+                'user_id' => $_SESSION['user_id']
+            ]);
+            die('Token CSRF inválido. Recarregue a página.');
+        }
+        
         if ($_POST['action'] === 'create') {
             $nome = trim($_POST['nome']);
             $tipo = $_POST['tipo'];
@@ -23,6 +39,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
             $stmt = $pdo->prepare("INSERT INTO investimentos (id_usuario, nome, tipo, valor_investido, valor_atual, data_inicio, data_vencimento, risco, notas) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
             $stmt->execute([$_SESSION['user_id'], $nome, $tipo, $valor_investido, $valor_investido, $data_inicio, $data_vencimento, $risco, $notas]);
+            
+            // Invalidar cache
+            $cache->delete("investimentos_{$_SESSION['user_id']}");
         }
         elseif ($_POST['action'] === 'update') {
             $id = $_POST['investimento_id'];
@@ -39,6 +58,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 
                 $stmt = $pdo->prepare("UPDATE investimentos SET valor_atual = ?, rendimento_percentual = ?, status = ? WHERE id = ? AND id_usuario = ?");
                 $stmt->execute([$valor_atual, $rendimento_percentual, $status, $id, $_SESSION['user_id']]);
+                
+                // Invalidar cache
+                $cache->delete("investimentos_{$_SESSION['user_id']}");
             }
         }
         elseif ($_POST['action'] === 'delete') {
@@ -46,6 +68,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
             $stmt = $pdo->prepare("DELETE FROM investimentos WHERE id = ? AND id_usuario = ?");
             $stmt->execute([$id, $_SESSION['user_id']]);
+            
+            // Invalidar cache
+            $cache->delete("investimentos_{$_SESSION['user_id']}");
         }
         
         header('Location: investimentos.php');
@@ -53,26 +78,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// Buscar todos os investimentos do usuário
-$stmt = $pdo->prepare("SELECT * FROM investimentos WHERE id_usuario = ? ORDER BY status ASC, data_inicio DESC");
-$stmt->execute([$_SESSION['user_id']]);
-$investimentos = $stmt->fetchAll(PDO::FETCH_ASSOC);
+// Buscar todos os investimentos do usuário com cache
+$cache_key = "investimentos_{$_SESSION['user_id']}";
+$investimentos = $cache->remember($cache_key, function() use ($pdo) {
+    $stmt = $pdo->prepare("SELECT * FROM investimentos WHERE id_usuario = ? ORDER BY status ASC, data_inicio DESC");
+    $stmt->execute([$_SESSION['user_id']]);
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}, 900); // 15 minutos
 
-// Calcular totais
-$total_investido = 0;
-$total_atual = 0;
-$rendimento_total = 0;
-
-foreach ($investimentos as $inv) {
-    if ($inv['status'] === 'Ativo') {
-        $total_investido += $inv['valor_investido'];
-        $total_atual += $inv['valor_atual'];
+// Calcular totais com cache
+$cache_key_totais = "investimentos_totais_{$_SESSION['user_id']}";
+$totais = $cache->remember($cache_key_totais, function() use ($investimentos) {
+    $total_investido = 0;
+    $total_atual = 0;
+    
+    foreach ($investimentos as $inv) {
+        if ($inv['status'] === 'Ativo') {
+            $total_investido += $inv['valor_investido'];
+            $total_atual += $inv['valor_atual'];
+        }
     }
-}
+    
+    $rendimento_total = 0;
+    if ($total_investido > 0) {
+        $rendimento_total = (($total_atual - $total_investido) / $total_investido) * 100;
+    }
+    
+    return [
+        'total_investido' => $total_investido,
+        'total_atual' => $total_atual,
+        'rendimento_total' => $rendimento_total
+    ];
+}, 900);
 
-if ($total_investido > 0) {
-    $rendimento_total = (($total_atual - $total_investido) / $total_investido) * 100;
-}
+$total_investido = $totais['total_investido'];
+$total_atual = $totais['total_atual'];
+$rendimento_total = $totais['rendimento_total'];
 
 require_once 'includes/header.php';
 ?>
@@ -98,7 +139,7 @@ require_once 'includes/header.php';
             <div class="card h-100 shadow-sm" style="border-radius: 15px; border: none; background: linear-gradient(135deg, #e0f7fa 0%, #b2ebf2 100%);">
                 <div class="card-body">
                     <h6 class="card-title text-muted mb-3"><i class="fas fa-wallet me-2"></i>Total Investido</h6>
-                    <h4 class="mb-0 text-primary fw-bold">R$ <?= number_format($total_investido, 2, ',', '.') ?></h4>
+                    <h4 class="mb-0 text-primary fw-bold"><?= fmt_currency($total_investido) ?></h4>
                 </div>
             </div>
         </div>
@@ -106,7 +147,7 @@ require_once 'includes/header.php';
             <div class="card h-100 shadow-sm" style="border-radius: 15px; border: none; background: linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%);">
                 <div class="card-body">
                     <h6 class="card-title text-muted mb-3"><i class="fas fa-chart-line me-2"></i>Valor Atual</h6>
-                    <h4 class="mb-0 text-purple fw-bold">R$ <?= number_format($total_atual, 2, ',', '.') ?></h4>
+                    <h4 class="mb-0 text-purple fw-bold"><?= fmt_currency($total_atual) ?></h4>
                 </div>
             </div>
         </div>
@@ -150,8 +191,8 @@ require_once 'includes/header.php';
                                 <tr style="transition: all 0.3s ease;">
                                     <td><strong><?= htmlspecialchars($inv['nome']) ?></strong></td>
                                     <td><span class="badge" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);"><?= htmlspecialchars($inv['tipo']) ?></span></td>
-                                    <td><strong>R$ <?= number_format($inv['valor_investido'], 2, ',', '.') ?></strong></td>
-                                    <td><strong class="text-primary">R$ <?= number_format($inv['valor_atual'], 2, ',', '.') ?></strong></td>
+                                    <td><strong><?= fmt_currency($inv['valor_investido']) ?></strong></td>
+                                    <td><strong class="text-primary"><?= fmt_currency($inv['valor_atual']) ?></strong></td>
                                     <td>
                                         <span class="badge <?= $inv['rendimento_percentual'] >= 0 ? 'bg-success' : 'bg-danger' ?>" style="font-size: 0.9rem;">
                                             <i class="fas fa-<?= $inv['rendimento_percentual'] >= 0 ? 'arrow-up' : 'arrow-down' ?>"></i>

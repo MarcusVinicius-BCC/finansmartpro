@@ -2,8 +2,8 @@
     
 <?php
 $current_page = basename($_SERVER['PHP_SELF']);
-// Mostrar footer apenas na página inicial e páginas de autenticação
-if (in_array($current_page, ['index.php', 'login.php', 'forgot_password.php', 'reset_password.php'])):
+// Mostrar footer apenas na página inicial
+if ($current_page === 'index.php'):
 ?>
     <footer class="footer mt-auto py-4">
         <div class="container">
@@ -94,24 +94,28 @@ if (in_array($current_page, ['index.php', 'login.php', 'forgot_password.php', 'r
 
     <style>
     .footer {
-        background-color: #6a0dad;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background-attachment: fixed;
         border-top: 1px solid rgba(255, 255, 255, 0.1);
         color: white;
     }
 
     .footer h5 {
         color: white !important;
+        font-family: 'Montserrat', sans-serif;
+        font-weight: 700;
     }
 
     .footer .text-muted,
     .footer a {
         color: rgba(255, 255, 255, 0.8) !important;
+        font-family: 'Open Sans', sans-serif;
     }
 
     .footer .social-links a:hover,
     .footer a:hover {
-        color: white !important;
-        opacity: 0.9;
+        color: #ffd700 !important;
+        opacity: 1;
     }
 
     .footer hr {

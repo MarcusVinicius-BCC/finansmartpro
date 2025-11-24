@@ -6,11 +6,22 @@ if (session_status() == PHP_SESSION_NONE) session_start();
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <?php
+    // Gerar token CSRF para a página
+    require_once __DIR__ . '/security.php';
+    $csrf_token = Security::generateCSRFToken();
+    ?>
+    <meta name="csrf-token" content="<?= $csrf_token ?>">
     <title>FinanSmart Pro</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Poppins:wght@400;500;600;700;800&family=Roboto:wght@300;400;500;700&family=Montserrat:wght@500;600;700;800;900&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="assets/css/style.css" rel="stylesheet">
     <link href="assets/css/sidebar.css" rel="stylesheet">
+    <link href="assets/css/mobile.css" rel="stylesheet">
 
     <?php 
     $current_page = basename($_SERVER['PHP_SELF']);
@@ -25,6 +36,18 @@ if (session_status() == PHP_SESSION_NONE) session_start();
             $stmtBase->execute([$_SESSION['user_id']]);
             $rowBase = $stmtBase->fetch();
             $user_base = $rowBase['moeda_base'] ?? 'BRL';
+        }
+        
+        // Carregar funções de moeda
+        require_once __DIR__ . '/currency.php';
+        
+        // Função helper global para formatar valores com a moeda do usuário
+        if (!function_exists('fmt_currency')) {
+            function fmt_currency($amount, $moeda = null) {
+                global $user_base;
+                $moeda = $moeda ?? $user_base ?? 'BRL';
+                return format_currency($amount, $moeda);
+            }
         }
     if ($current_page === 'index.php'): ?>
         <link href="assets/css/hero.css" rel="stylesheet">
@@ -50,7 +73,9 @@ if (session_status() == PHP_SESSION_NONE) session_start();
     <?php if(isset($_SESSION['user_id']) && $current_page !== 'index.php'): ?>
         <script src="assets/js/sidebar.js" defer></script>
         <script src="assets/js/notifications.js" defer></script>
+        <script src="assets/js/mobile.js" defer></script>
     <?php endif; ?>
+    <script src="assets/js/csrf.js" defer></script>
     <script src="assets/js/main.js" defer></script>
 
     <script>
@@ -282,6 +307,10 @@ if (session_status() == PHP_SESSION_NONE) session_start();
 
         <!-- Conteúdo Principal -->
         <div class="main-content">
+            <!-- Header com Logo -->
+            <div class="page-header">
+                <img src="assets/img/mockup.png" alt="FinanSmart Pro" class="page-logo">
+            </div>
 <?php else: ?>
     <?php if($current_page === 'index.php'): ?>
 

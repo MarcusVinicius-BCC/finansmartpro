@@ -1,13 +1,24 @@
 <?php
 require 'includes/db.php';
 require 'includes/currency.php';
-session_start();
+require_once 'includes/security.php';
+require_once 'includes/validator.php';
 if(!isset($_SESSION['user_id'])) header('Location: login.php');
 $user_id = $_SESSION['user_id'];
 
 // Processar ações
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
+    
+    // Validar CSRF
+    if (!Security::validateCSRFToken($_POST['csrf_token'] ?? '')) {
+        Security::logSecurityEvent('csrf_validation_failed', [
+            'module' => 'lembretes',
+            'action' => $action,
+            'user_id' => $user_id
+        ]);
+        die('Token CSRF inválido. Recarregue a página.');
+    }
     
     if ($action === 'marcar_lida') {
         $id = $_POST['id'];

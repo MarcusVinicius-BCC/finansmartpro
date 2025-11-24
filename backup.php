@@ -1,6 +1,7 @@
 <?php
 require_once 'includes/db.php';
-session_start();
+require_once 'includes/security.php';
+require_once 'includes/Pagination.php';
 
 if (!isset($_SESSION['user_id'])) {
     header('Location: login.php');
@@ -11,6 +12,16 @@ $user_id = $_SESSION['user_id'];
 
 // Processar backup
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+    // Validar CSRF
+    if (!Security::validateCSRFToken($_POST['csrf_token'] ?? '')) {
+        Security::logSecurityEvent('csrf_validation_failed', [
+            'module' => 'backup',
+            'action' => $_POST['action'],
+            'user_id' => $user_id
+        ]);
+        die('Token CSRF inválido. Recarregue a página.');
+    }
+    
     if ($_POST['action'] === 'gerar_backup') {
         try {
             $timestamp = date('Y-m-d_H-i-s');
