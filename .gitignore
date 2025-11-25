@@ -10,6 +10,7 @@
 .env.local
 .env.production
 .env.backup
+includes/db.php
 includes/db.php.bak
 
 # ------------------------------------------------------------------------------
