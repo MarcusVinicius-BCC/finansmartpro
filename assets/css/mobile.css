@@ -70,9 +70,9 @@
 }
 
 /* =================================================================
-   CARDS E CONTAINERS
+   CARDS E CONTAINERS - 100% RESPONSIVOS
    ================================================================= */
-@media (max-width: 767px) {
+@media (max-width: 991px) {
 
     /* Cards empilhados verticalmente */
     .row>[class*="col-"] {
@@ -85,33 +85,53 @@
 
     /* Reduzir padding dos cards */
     .card-body {
-        padding: 1rem;
+        padding: clamp(0.75rem, 3vw, 1.25rem);
     }
 
     .card-header {
-        padding: 0.75rem 1rem;
-        font-size: 0.95rem;
+        padding: clamp(0.6rem, 2.5vw, 1rem);
+        font-size: clamp(0.85rem, 3vw, 1.1rem);
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
     }
 
-    /* Títulos menores */
+    .card-header .btn-group,
+    .card-header .d-flex {
+        flex: 1 1 100%;
+        justify-content: space-between;
+    }
+
+    /* Títulos responsivos */
     h1,
     .h1 {
-        font-size: 1.75rem;
+        font-size: clamp(1.5rem, 5vw, 2.5rem) !important;
     }
 
     h2,
     .h2 {
-        font-size: 1.5rem;
+        font-size: clamp(1.3rem, 4.5vw, 2rem) !important;
     }
 
     h3,
     .h3 {
-        font-size: 1.25rem;
+        font-size: clamp(1.1rem, 4vw, 1.75rem) !important;
     }
 
     h4,
     .h4 {
-        font-size: 1.1rem;
+        font-size: clamp(1rem, 3.5vw, 1.5rem) !important;
+    }
+
+    h5,
+    .h5 {
+        font-size: clamp(0.9rem, 3vw, 1.25rem) !important;
+    }
+
+    /* Container principal */
+    .container-fluid {
+        padding-left: clamp(0.75rem, 3vw, 1.5rem) !important;
+        padding-right: clamp(0.75rem, 3vw, 1.5rem) !important;
     }
 }
 
@@ -203,27 +223,102 @@
 }
 
 /* =================================================================
-   CALENDÁRIO MOBILE
+   CALENDÁRIO MOBILE - 100% RESPONSIVO
    ================================================================= */
-@media (max-width: 575px) {
+@media (max-width: 991px) {
+    .calendario-container {
+        padding: 15px !important;
+        margin: 0 !important;
+    }
+
+    .calendario-header {
+        flex-wrap: wrap;
+        gap: 0.75rem;
+    }
+
+    .calendario-header h4 {
+        font-size: clamp(1.1rem, 4vw, 1.5rem) !important;
+        flex: 1 1 100%;
+        text-align: center;
+    }
+
+    .calendario-header .btn-group {
+        flex: 1 1 100%;
+        justify-content: center;
+    }
+
+    .calendario-nav {
+        gap: 0.5rem;
+    }
+
+    .calendario-nav .btn {
+        font-size: clamp(0.75rem, 2.5vw, 0.9rem) !important;
+        padding: 0.4rem 0.8rem !important;
+    }
+}
+
+@media (max-width: 767px) {
     .calendario-grid {
+        display: grid;
         grid-template-columns: repeat(7, 1fr);
-        gap: 0.25rem;
+        gap: clamp(2px, 1vw, 8px);
+        font-size: clamp(0.65rem, 2vw, 0.85rem);
+    }
+
+    .semana-header {
+        padding: clamp(0.3rem, 1.5vw, 0.5rem);
+        font-size: clamp(0.65rem, 2vw, 0.8rem) !important;
+        font-weight: 600;
     }
 
     .dia-celula {
-        padding: 0.5rem 0.25rem;
-        font-size: 0.75rem;
-        border-radius: 8px;
+        padding: clamp(0.3rem, 1.5vw, 0.6rem) !important;
+        font-size: clamp(0.65rem, 2vw, 0.8rem);
+        min-height: clamp(50px, 12vw, 80px);
+        border-radius: clamp(4px, 1.5vw, 10px);
     }
 
-    .dia-celula .dia-numero {
-        font-size: 0.85rem;
+    .dia-numero {
+        font-size: clamp(0.75rem, 2.5vw, 1rem) !important;
+        margin-bottom: 0.2rem;
     }
 
     .eventos-badge {
-        font-size: 0.65rem;
-        padding: 0.1rem 0.3rem;
+        font-size: clamp(0.55rem, 1.5vw, 0.7rem) !important;
+        padding: 0.1rem 0.25rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 100%;
+    }
+
+    .dia-eventos {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        max-height: 40px;
+        overflow: hidden;
+    }
+}
+
+@media (max-width: 480px) {
+
+    /* Calendário ultra compacto para telas muito pequenas */
+    .dia-celula {
+        padding: 0.2rem !important;
+    }
+
+    .semana-header {
+        font-size: 0.6rem !important;
+    }
+
+    .dia-numero {
+        font-size: 0.7rem !important;
+    }
+
+    .eventos-badge {
+        font-size: 0.5rem !important;
+        padding: 1px 3px !important;
     }
 }
 
@@ -270,8 +365,28 @@
 }
 
 /* =================================================================
-   BOTÕES TOUCH-FRIENDLY
+   BOTÕES TOUCH-FRIENDLY E RESPONSIVOS
    ================================================================= */
+@media (max-width: 991px) {
+
+    /* TODOS os botões adaptáveis */
+    .btn {
+        font-size: clamp(0.75rem, 2.5vw, 0.95rem) !important;
+        padding: clamp(0.4rem, 2vw, 0.75rem) clamp(0.8rem, 3vw, 1.25rem) !important;
+        white-space: nowrap;
+    }
+
+    .btn-lg {
+        font-size: clamp(0.9rem, 3vw, 1.15rem) !important;
+        padding: clamp(0.6rem, 2.5vw, 0.9rem) clamp(1rem, 4vw, 1.75rem) !important;
+    }
+
+    .btn-sm {
+        font-size: clamp(0.65rem, 2vw, 0.8rem) !important;
+        padding: clamp(0.3rem, 1.5vw, 0.5rem) clamp(0.6rem, 2.5vw, 0.9rem) !important;
+    }
+}
+
 @media (max-width: 767px) {
 
     /* Botões ação empilhados */
@@ -290,12 +405,20 @@
         position: fixed;
         bottom: 2rem;
         right: 2rem;
-        width: 60px;
-        height: 60px;
+        width: 56px;
+        height: 56px;
         border-radius: 50%;
-        font-size: 1.5rem;
+        font-size: 1.3rem;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
         z-index: 1000;
+    }
+
+    /* Botões de ação em páginas ocupam largura total */
+    .card-header .btn,
+    .page-header .btn,
+    .d-flex .btn {
+        flex: 1;
+        min-width: auto;
     }
 }
 

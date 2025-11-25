@@ -185,6 +185,28 @@ body,
     filter: brightness(1.1);
 }
 
+@media (max-width: 991px) {
+    .page-header {
+        height: 60px;
+        padding: 0.5rem 1rem;
+    }
+
+    .page-logo {
+        height: 45px;
+    }
+}
+
+@media (max-width: 576px) {
+    .page-header {
+        height: 50px;
+        padding: 0.5rem;
+    }
+
+    .page-logo {
+        height: 35px;
+    }
+}
+
 /* Ajustar conteúdo para não ficar atrás do header */
 .main-content>.container-fluid,
 .main-content>main,

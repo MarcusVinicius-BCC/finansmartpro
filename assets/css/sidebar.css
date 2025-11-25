@@ -474,3 +474,22 @@
     opacity: 0.7;
     margin-left: auto;
 }
+
+/* =================================================================
+   MOBILE RESPONSIVO - SELETOR DE MOEDA NO TOPO
+   ================================================================= */
+@media (max-width: 991px) {
+    .sidebar .user-section {
+        display: flex;
+        flex-direction: column-reverse;
+    }
+
+    .sidebar .currency-selector {
+        margin-bottom: 1rem !important;
+        margin-top: 0 !important;
+    }
+
+    .sidebar .user-info {
+        margin-top: 0;
+    }
+}

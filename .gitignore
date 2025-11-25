@@ -1,48 +1,128 @@
-# Variáveis de Ambiente
+# ==============================================================================
+# FinanSmart Pro - .gitignore
+# Arquivos e pastas que NÃO devem ser versionados no Git
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# SEGURANÇA - Credenciais e Dados Sensíveis
+# ------------------------------------------------------------------------------
 .env
 .env.local
 .env.production
+.env.backup
+includes/db.php.bak
 
-# Uploads e Dados do Usuário
+# ------------------------------------------------------------------------------
+# UPLOADS E DADOS DO USUÁRIO (NÃO VERSIONAR)
+# ------------------------------------------------------------------------------
 uploads/**
 !uploads/.htaccess
 !uploads/anexos/.gitkeep
+uploads/anexos/*
+!uploads/anexos/.gitkeep
 
-# Backups
+# ------------------------------------------------------------------------------
+# BACKUPS DO BANCO DE DADOS
+# ------------------------------------------------------------------------------
 backups/**
 !backups/.gitkeep
+*.sql
+!database.sql
+!database_indexes_safe.sql
 
-# Logs
+# ------------------------------------------------------------------------------
+# LOGS E MONITORAMENTO
+# ------------------------------------------------------------------------------
 logs/**
 !logs/.htaccess
 !logs/.gitkeep
+*.log
 
-# Cache
+# ------------------------------------------------------------------------------
+# CACHE E ARQUIVOS TEMPORÁRIOS
+# ------------------------------------------------------------------------------
 cache/
 cache/**
 !cache/.gitkeep
+*.tmp
+*.temp
+*.cache
 
-# Composer
+# ------------------------------------------------------------------------------
+# COMPOSER E DEPENDÊNCIAS
+# ------------------------------------------------------------------------------
 /vendor/
 composer.lock
+composer.phar
 
-# IDE
+# ------------------------------------------------------------------------------
+# ARQUIVOS DE TESTE (DEV ONLY)
+# ------------------------------------------------------------------------------
+test_*.php
+*_test.php
+phpunit.xml
+.phpunit.result.cache
+
+# ------------------------------------------------------------------------------
+# SCRIPTS DE BUILD E DEPLOY (DEV ONLY)
+# ------------------------------------------------------------------------------
+minify_assets.php
+prepare_production.bat
+security_tools.bat
+security_tools.sh
+database_indexes.sql
+exclude.txt
+
+# ------------------------------------------------------------------------------
+# DOCUMENTAÇÃO MARKDOWN (OPCIONAL - MANTER NO GIT)
+# ------------------------------------------------------------------------------
+# Comentar linhas abaixo se quiser versionar a documentação
+# *.md
+# !README.md
+
+# ------------------------------------------------------------------------------
+# IDE E EDITORES
+# ------------------------------------------------------------------------------
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
+.project
+.settings/
+.buildpath
 
-# Sistema Operacional
+# ------------------------------------------------------------------------------
+# SISTEMA OPERACIONAL
+# ------------------------------------------------------------------------------
 .DS_Store
 Thumbs.db
 desktop.ini
+$RECYCLE.BIN/
+*.lnk
 
-# Temporários
-*.tmp
-*.log
-*.sql
-
-# Node (se usar)
+# ------------------------------------------------------------------------------
+# NODE.JS (se usar)
+# ------------------------------------------------------------------------------
 node_modules/
 package-lock.json
+npm-debug.log
+yarn-error.log
+yarn.lock
+
+# ------------------------------------------------------------------------------
+# ARQUIVOS MINIFICADOS (GERAR EM DEPLOY)
+# ------------------------------------------------------------------------------
+# Comentar se quiser versionar os .min
+# assets/css/*.min.css
+# assets/js/*.min.js
+
+# ------------------------------------------------------------------------------
+# OUTROS
+# ------------------------------------------------------------------------------
+*.bak
+*.old
+*.orig
+error_log
+debug.log
+.htaccess.bak

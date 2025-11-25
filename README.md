@@ -18,6 +18,26 @@
 
 ### 📊 Controle Financeiro Completo | 💳 Multi-moeda | 📈 Analytics Avançado | 🛡️ Proteção Antivírus
 
+<br>
+
+## 🌐 **DEMO AO VIVO**
+
+### 🎯 **Experimente o sistema funcionando:**
+
+<a href="https://finansmartpro.rf.gd/" target="_blank">
+  <img src="https://img.shields.io/badge/🚀_ACESSAR_DEMO_ONLINE-667eea?style=for-the-badge&labelColor=764ba2" alt="Demo Online" height="50">
+</a>
+
+**🔗 Link direto:** https://finansmartpro.rf.gd/
+
+**👤 Credenciais de teste:**
+- 📧 Email: `demo@finansmart.com`
+- 🔑 Senha: `demo123`
+
+<sub>⚡ Sistema 100% funcional | 🛡️ Segurança ativa | 💳 Multi-moeda habilitada</sub>
+
+<br>
+
 [Recursos](#-recursos) • [Segurança](#-segurança) • [Instalação](#-instalação) • [Módulos](#-módulos) • [Tecnologias](#-tecnologias)
 
 </div>
@@ -124,14 +144,27 @@
 
 ## 🚀 Instalação
 
+### ⚙️ Requisitos Mínimos
+
+| Componente | Versão Mínima | Download |
+|------------|---------------|----------|
+| **PHP** | 8.2+ | [php.net](https://www.php.net/) |
+| **MySQL** | 8.0+ | Incluído no XAMPP |
+| **Composer** | 2.0+ | [getcomposer.org](https://getcomposer.org/) |
+| **Apache** | 2.4+ | Incluído no XAMPP |
+
+**💾 Espaço em disco:** ~50 MB<br>
+**💻 Sistemas:** Windows 10/11, macOS, Linux<br>
+**🌐 Navegador:** Chrome 90+, Firefox 88+, Edge 90+
+
 ### 📋 Pré-requisitos
 
 Antes de começar, certifique-se de ter instalado:
 
-- [XAMPP 8.2+](https://www.apachefriends.org/) - Apache, MySQL e PHP
-- [Composer](https://getcomposer.org/) - Gerenciador de dependências PHP
-- Navegador moderno (Chrome, Firefox, Edge)
-- Conexão com internet (para API de câmbio)
+- ✅ [XAMPP 8.2+](https://www.apachefriends.org/) - Apache, MySQL e PHP
+- ✅ [Composer](https://getcomposer.org/) - Gerenciador de dependências PHP
+- ✅ Navegador moderno (Chrome, Firefox, Edge)
+- ✅ Conexão com internet (para API de câmbio)
 
 ### 🔧 Passo a Passo
 
@@ -223,6 +256,49 @@ http://localhost/finansmartpro
 **Credenciais padrão:**
 - 📧 Email: `admin@gmail.com`
 - 🔑 Senha: `123456`
+
+---
+
+### 📁 Arquivos Essenciais
+
+**✅ Necessários para rodar o sistema:**
+
+```
+finansmart_producao/       # Pasta de produção
+├── index.php              # Página inicial
+├── login.php             # Autenticação
+├── dashboard.php         # Dashboard principal
+├── .htaccess            # Configurações Apache
+├── composer.json        # Dependências PHP
+├── database.sql         # Estrutura do banco
+├── includes/            # Arquivos PHP core
+│   ├── db.php
+│   ├── security.php
+│   ├── currency.php
+│   └── AntivirusScanner.php
+├── assets/              # CSS, JS, imagens
+│   ├── css/
+│   ├── js/
+│   └── img/
+├── api/                 # Endpoints AJAX
+├── pdf/                 # Geração de relatórios
+└── vendor/              # Dependências Composer
+```
+
+**❌ NÃO enviar para produção:**
+
+```
+❌ test_*.php            # Scripts de teste
+❌ *.md                  # Documentação
+❌ .env                  # Credenciais sensíveis
+❌ database_indexes*.sql # Scripts de otimização
+❌ minify_assets.php     # Script de build
+❌ prepare_production.bat # Script de deploy
+❌ security_tools.*      # Ferramentas dev
+❌ logs/*.log            # Logs locais
+❌ backups/*.sql         # Backups locais
+❌ .vscode/              # Configurações IDE
+```
 
 ---
 
