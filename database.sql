@@ -1,5 +1,12 @@
-CREATE DATABASE IF NOT EXISTS finansmart CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE finansmart;
+-- phpMyAdmin SQL Dump
+-- version 5.2.1
+-- https://www.phpmyadmin.net/
+--
+-- Host: 127.0.0.1
+-- Tempo de geração: 26/11/2025 às 20:02
+-- Versão do servidor: 10.4.32-MariaDB
+-- Versão do PHP: 8.2.12
+
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
 SET time_zone = "+00:00";
@@ -36,6 +43,24 @@ CREATE TABLE `alertas` (
 -- --------------------------------------------------------
 
 --
+-- Estrutura para tabela `anexos_lancamentos`
+--
+
+CREATE TABLE `anexos_lancamentos` (
+  `id` int(11) NOT NULL,
+  `id_lancamento` int(11) NOT NULL,
+  `nome_arquivo` varchar(255) NOT NULL,
+  `nome_original` varchar(255) NOT NULL,
+  `caminho_arquivo` varchar(500) NOT NULL,
+  `tipo_arquivo` varchar(10) NOT NULL,
+  `tamanho` bigint(20) NOT NULL,
+  `descricao` text DEFAULT NULL,
+  `data_upload` datetime DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Estrutura para tabela `ativos_financeiros`
 --
 
@@ -56,6 +81,31 @@ CREATE TABLE `ativos_financeiros` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Estrutura para tabela `backups`
+--
+
+CREATE TABLE `backups` (
+  `id` int(11) NOT NULL,
+  `id_usuario` int(11) NOT NULL,
+  `nome_arquivo` varchar(200) NOT NULL,
+  `tamanho_bytes` bigint(20) DEFAULT NULL,
+  `data_backup` datetime DEFAULT current_timestamp(),
+  `tipo` enum('completo','parcial') DEFAULT 'completo',
+  `status` enum('sucesso','erro') DEFAULT 'sucesso',
+  `observacoes` text DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Despejando dados para a tabela `backups`
+--
+
+INSERT INTO `backups` (`id`, `id_usuario`, `nome_arquivo`, `tamanho_bytes`, `data_backup`, `tipo`, `status`, `observacoes`) VALUES
+(1, 3, 'backup_finansmart_2025-11-23_20-41-02.sql', 2818, '2025-11-23 16:41:02', 'completo', 'sucesso', NULL),
+(2, 3, 'backup_finansmart_2025-11-23_20-53-02.sql', 2518, '2025-11-23 16:53:02', 'completo', 'sucesso', NULL);
 
 -- --------------------------------------------------------
 
@@ -85,34 +135,121 @@ CREATE TABLE `cartoes` (
 
 CREATE TABLE `categorias` (
   `id` int(11) NOT NULL,
-  `id_usuario` int(11) NOT NULL,
   `nome` varchar(50) NOT NULL,
-  `tipo` enum('receita','despesa') NOT NULL
+  `tipo` enum('receita','despesa') NOT NULL,
+  `icone` varchar(50) DEFAULT 'fa-folder',
+  `cor` varchar(7) DEFAULT '#000000',
+  `descricao` text DEFAULT NULL,
+  `id_usuario` int(11) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Despejando dados para a tabela `categorias`
 --
 
-INSERT INTO `categorias` (`id`, `nome`, `tipo`, `icone`, `cor`, `descricao`) VALUES
-(1, 'Salário', 'receita', 'fa-money-bill-wave', '#28a745', NULL),
-(2, 'Freelance', 'receita', 'fa-laptop', '#17a2b8', NULL),
-(3, 'Investimentos', 'receita', 'fa-chart-line', '#fd7e14', NULL),
-(4, 'Rendimentos', 'receita', 'fa-percentage', '#20c997', NULL),
-(5, 'Bônus', 'receita', 'fa-gift', '#6f42c1', NULL),
-(6, 'Reembolsos', 'receita', 'fa-undo', '#e83e8c', NULL),
-(7, 'Alimentação', 'despesa', 'fa-utensils', '#dc3545', NULL),
-(8, 'Transporte', 'despesa', 'fa-car', '#6c757d', NULL),
-(9, 'Moradia', 'despesa', 'fa-home', '#fd7e14', NULL),
-(10, 'Saúde', 'despesa', 'fa-heartbeat', '#e83e8c', NULL),
-(11, 'Educação', 'despesa', 'fa-graduation-cap', '#20c997', NULL),
-(12, 'Lazer', 'despesa', 'fa-smile', '#ffc107', NULL),
-(13, 'Vestuário', 'despesa', 'fa-tshirt', '#6f42c1', NULL),
-(14, 'Investimentos', 'despesa', 'fa-chart-pie', '#28a745', NULL),
-(15, 'Seguros', 'despesa', 'fa-shield-alt', '#17a2b8', NULL),
-(16, 'Presentes', 'despesa', 'fa-gift', '#e83e8c', NULL),
-(17, 'Impostos', 'despesa', 'fa-file-invoice-dollar', '#dc3545', NULL),
-(18, 'Outros', 'despesa', 'fa-ellipsis-h', '#6c757d', NULL);
+INSERT INTO `categorias` (`id`, `nome`, `tipo`, `icone`, `cor`, `descricao`, `id_usuario`) VALUES
+(1, 'Salário', 'receita', 'fa-money-bill-wave', '#28a745', NULL, 0),
+(2, 'Freelance', 'receita', 'fa-laptop', '#17a2b8', NULL, 0),
+(3, 'Investimentos', 'receita', 'fa-chart-line', '#fd7e14', NULL, 0),
+(4, 'Rendimentos', 'receita', 'fa-percentage', '#20c997', NULL, 0),
+(5, 'Bônus', 'receita', 'fa-gift', '#6f42c1', NULL, 0),
+(6, 'Reembolsos', 'receita', 'fa-undo', '#e83e8c', NULL, 0),
+(7, 'Alimentação', 'despesa', 'fa-utensils', '#dc3545', NULL, 0),
+(8, 'Transporte', 'despesa', 'fa-car', '#6c757d', NULL, 0),
+(9, 'Moradia', 'despesa', 'fa-home', '#fd7e14', NULL, 0),
+(10, 'Saúde', 'despesa', 'fa-heartbeat', '#e83e8c', NULL, 0),
+(11, 'Educação', 'despesa', 'fa-graduation-cap', '#20c997', NULL, 0),
+(12, 'Lazer', 'despesa', 'fa-smile', '#ffc107', NULL, 0),
+(13, 'Vestuário', 'despesa', 'fa-tshirt', '#6f42c1', NULL, 0),
+(14, 'Investimentos', 'despesa', 'fa-chart-pie', '#28a745', NULL, 0),
+(15, 'Seguros', 'despesa', 'fa-shield-alt', '#17a2b8', NULL, 0),
+(16, 'Presentes', 'despesa', 'fa-gift', '#e83e8c', NULL, 0),
+(17, 'Impostos', 'despesa', 'fa-file-invoice-dollar', '#dc3545', NULL, 0),
+(18, 'Outros', 'despesa', 'fa-ellipsis-h', '#6c757d', NULL, 0);
+
+-- --------------------------------------------------------
+
+--
+-- Estrutura para tabela `conciliacoes`
+--
+
+CREATE TABLE `conciliacoes` (
+  `id` int(11) NOT NULL,
+  `id_usuario` int(11) NOT NULL,
+  `id_conta` int(11) NOT NULL,
+  `data_conciliacao` date NOT NULL,
+  `saldo_sistema` decimal(15,2) NOT NULL,
+  `saldo_real` decimal(15,2) NOT NULL,
+  `divergencia` decimal(15,2) GENERATED ALWAYS AS (abs(`saldo_real` - `saldo_sistema`)) STORED,
+  `status` enum('conciliado','divergente','pendente') DEFAULT 'pendente',
+  `observacoes` text DEFAULT NULL,
+  `data_registro` datetime DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Estrutura para tabela `contas_bancarias`
+--
+
+CREATE TABLE `contas_bancarias` (
+  `id` int(11) NOT NULL,
+  `id_usuario` int(11) NOT NULL,
+  `nome` varchar(100) NOT NULL,
+  `tipo` varchar(50) NOT NULL,
+  `banco` varchar(100) DEFAULT NULL,
+  `agencia` varchar(20) DEFAULT NULL,
+  `numero_conta` varchar(30) DEFAULT NULL,
+  `saldo_inicial` decimal(15,2) NOT NULL DEFAULT 0.00,
+  `saldo_atual` decimal(15,2) NOT NULL DEFAULT 0.00,
+  `moeda` varchar(3) NOT NULL DEFAULT 'BRL',
+  `status` enum('ativa','inativa') DEFAULT 'ativa',
+  `cor` varchar(7) DEFAULT '#6a0dad',
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Estrutura para tabela `contas_pagar`
+--
+
+CREATE TABLE `contas_pagar` (
+  `id` int(11) NOT NULL,
+  `id_usuario` int(11) NOT NULL,
+  `descricao` varchar(200) NOT NULL,
+  `valor` decimal(15,2) NOT NULL,
+  `vencimento` date NOT NULL,
+  `data_pagamento` date DEFAULT NULL,
+  `status` enum('pendente','pago','atrasado') DEFAULT 'pendente',
+  `id_categoria` int(11) DEFAULT NULL,
+  `fornecedor` varchar(100) DEFAULT NULL,
+  `num_documento` varchar(50) DEFAULT NULL,
+  `observacoes` text DEFAULT NULL,
+  `data_criacao` datetime DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Estrutura para tabela `contas_receber`
+--
+
+CREATE TABLE `contas_receber` (
+  `id` int(11) NOT NULL,
+  `id_usuario` int(11) NOT NULL,
+  `descricao` varchar(200) NOT NULL,
+  `valor` decimal(15,2) NOT NULL,
+  `vencimento` date NOT NULL,
+  `data_recebimento` date DEFAULT NULL,
+  `status` enum('pendente','recebido','atrasado') DEFAULT 'pendente',
+  `id_categoria` int(11) DEFAULT NULL,
+  `cliente` varchar(100) DEFAULT NULL,
+  `num_documento` varchar(50) DEFAULT NULL,
+  `observacoes` text DEFAULT NULL,
+  `data_criacao` datetime DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -154,6 +291,21 @@ CREATE TABLE `faturas_cartao` (
   `data_vencimento` date DEFAULT NULL,
   `data_pagamento` date DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Estrutura para tabela `importacoes`
+--
+
+CREATE TABLE `importacoes` (
+  `id` int(11) NOT NULL,
+  `id_usuario` int(11) NOT NULL,
+  `nome_arquivo` varchar(255) NOT NULL,
+  `tipo_arquivo` enum('ofx','csv') NOT NULL,
+  `total_lancamentos` int(11) DEFAULT 0,
+  `data_importacao` datetime DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
@@ -205,6 +357,22 @@ CREATE TABLE `lancamentos` (
 -- --------------------------------------------------------
 
 --
+-- Estrutura para tabela `membros_familia`
+--
+
+CREATE TABLE `membros_familia` (
+  `id` int(11) NOT NULL,
+  `id_proprietario` int(11) NOT NULL,
+  `id_membro` int(11) NOT NULL,
+  `permissoes` enum('visualizacao','edicao','total') DEFAULT 'visualizacao',
+  `status` enum('pendente','ativo','recusado','inativo') DEFAULT 'pendente',
+  `data_convite` datetime DEFAULT current_timestamp(),
+  `data_aceite` datetime DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Estrutura para tabela `metas`
 --
 
@@ -216,11 +384,12 @@ CREATE TABLE `metas` (
   `valor_atual` decimal(12,2) DEFAULT 0.00,
   `data_limite` date NOT NULL,
   `categoria` varchar(50) NOT NULL,
-  `status` enum('Em andamento','Concluída','Atrasada') DEFAULT 'Em andamento'
+  `status` enum('Em andamento','Concluída','Atrasada') DEFAULT 'Em andamento',
+  `moeda` varchar(10) NOT NULL DEFAULT 'BRL'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
-ADD COLUMN moeda VARCHAR(10) NOT NULL DEFAULT 'BRL' AFTER status;
+
 --
 -- Estrutura para tabela `metas_financeiras`
 --
@@ -245,6 +414,22 @@ CREATE TABLE `metas_financeiras` (
 -- --------------------------------------------------------
 
 --
+-- Estrutura para tabela `notificacoes`
+--
+
+CREATE TABLE `notificacoes` (
+  `id` int(11) NOT NULL,
+  `id_usuario` int(11) NOT NULL,
+  `tipo` varchar(50) NOT NULL,
+  `titulo` varchar(255) NOT NULL,
+  `mensagem` text NOT NULL,
+  `lida` tinyint(1) DEFAULT 0,
+  `data_criacao` datetime DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Estrutura para tabela `orcamentos`
 --
 
@@ -259,6 +444,45 @@ CREATE TABLE `orcamentos` (
   `status` enum('dentro_limite','proximo_limite','excedido') DEFAULT 'dentro_limite',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Estrutura para tabela `password_resets`
+--
+
+CREATE TABLE `password_resets` (
+  `id` int(11) NOT NULL,
+  `email` varchar(255) NOT NULL,
+  `token` varchar(255) NOT NULL,
+  `expires_at` datetime NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Despejando dados para a tabela `password_resets`
+--
+
+INSERT INTO `password_resets` (`id`, `email`, `token`, `expires_at`, `created_at`) VALUES
+(4, 'admin@gmail.com', '4a1be35eaee7d2c0ea90298ebe6d27df27603107df08f55934abb4e80b4c97eb2020dd9dea17aaa3df86c81a2635db449673', '2025-11-21 21:29:01', '2025-11-21 19:29:01');
+
+-- --------------------------------------------------------
+
+--
+-- Estrutura para tabela `planejamento_cenarios`
+--
+
+CREATE TABLE `planejamento_cenarios` (
+  `id` int(11) NOT NULL,
+  `id_usuario` int(11) NOT NULL,
+  `nome` varchar(100) NOT NULL,
+  `descricao` text DEFAULT NULL,
+  `tipo` enum('receita','despesa','investimento','divida') NOT NULL,
+  `valor_base` decimal(15,2) NOT NULL,
+  `percentual_variacao` decimal(5,2) NOT NULL,
+  `resultado_calculado` decimal(15,2) NOT NULL,
+  `data_criacao` datetime DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
@@ -283,14 +507,18 @@ CREATE TABLE `relatorios_personalizados` (
 -- --------------------------------------------------------
 
 --
--- Estrutura para tabela `password_resets`
+-- Estrutura para tabela `transferencias`
 --
 
-CREATE TABLE `password_resets` (
+CREATE TABLE `transferencias` (
   `id` int(11) NOT NULL,
-  `email` varchar(255) NOT NULL,
-  `token` varchar(255) NOT NULL,
-  `expires_at` datetime NOT NULL
+  `id_usuario` int(11) NOT NULL,
+  `conta_origem` int(11) NOT NULL,
+  `conta_destino` int(11) NOT NULL,
+  `valor` decimal(15,2) NOT NULL,
+  `descricao` varchar(255) DEFAULT NULL,
+  `data_transferencia` date NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
@@ -314,24 +542,12 @@ CREATE TABLE `usuarios` (
   `status` enum('ativo','inativo','bloqueado') DEFAULT 'ativo'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-
-CREATE TABLE IF NOT EXISTS `password_resets` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `email` varchar(255) NOT NULL,
-  `token` varchar(255) NOT NULL,
-  `expires_at` datetime NOT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  PRIMARY KEY (`id`),
-  KEY `token` (`token`(191)),
-  KEY `email` (`email`(191))
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
 --
 -- Despejando dados para a tabela `usuarios`
 --
 
 INSERT INTO `usuarios` (`id`, `nome`, `email`, `senha`, `moeda_base`, `tema`, `notificacoes_email`, `notificacoes_sistema`, `formato_data`, `data_registro`, `ultimo_acesso`, `status`) VALUES
-(1, 'admin', 'admin@gmail.com', '$2y$10$ceVuB2VpLA6g96nFpiuA8.tOezj1eKsrjdgJGPhf9wbpunybJNGb2', 'BRL', 'light', 1, 1, 'DD/MM/YYYY', '2025-11-04 15:28:26', NULL, 'ativo');
+(3, 'admin', 'admin@gmail.com', '$2y$10$x2ncczOxgLWfeN4XmNT9AusQH5yAXixsy/fBbCeXLrkhMBYHHbhsS', 'BRL', 'light', 1, 1, 'DD/MM/YYYY', '2025-11-17 13:39:45', NULL, 'ativo');
 
 --
 -- Índices para tabelas despejadas
@@ -345,11 +561,26 @@ ALTER TABLE `alertas`
   ADD KEY `idx_alertas_usuario_status` (`id_usuario`,`status`);
 
 --
+-- Índices de tabela `anexos_lancamentos`
+--
+ALTER TABLE `anexos_lancamentos`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `id_lancamento` (`id_lancamento`);
+
+--
 -- Índices de tabela `ativos_financeiros`
 --
 ALTER TABLE `ativos_financeiros`
   ADD PRIMARY KEY (`id`),
   ADD KEY `id_usuario` (`id_usuario`);
+
+--
+-- Índices de tabela `backups`
+--
+ALTER TABLE `backups`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `id_usuario` (`id_usuario`),
+  ADD KEY `data_backup` (`data_backup`);
 
 --
 -- Índices de tabela `cartoes`
@@ -362,7 +593,45 @@ ALTER TABLE `cartoes`
 -- Índices de tabela `categorias`
 --
 ALTER TABLE `categorias`
-  ADD PRIMARY KEY (`id`);
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_usuario_tipo` (`id_usuario`,`tipo`),
+  ADD KEY `idx_tipo` (`tipo`);
+
+--
+-- Índices de tabela `conciliacoes`
+--
+ALTER TABLE `conciliacoes`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `id_usuario` (`id_usuario`),
+  ADD KEY `id_conta` (`id_conta`),
+  ADD KEY `data_conciliacao` (`data_conciliacao`);
+
+--
+-- Índices de tabela `contas_bancarias`
+--
+ALTER TABLE `contas_bancarias`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `id_usuario` (`id_usuario`);
+
+--
+-- Índices de tabela `contas_pagar`
+--
+ALTER TABLE `contas_pagar`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `id_usuario` (`id_usuario`),
+  ADD KEY `id_categoria` (`id_categoria`),
+  ADD KEY `vencimento` (`vencimento`),
+  ADD KEY `status` (`status`);
+
+--
+-- Índices de tabela `contas_receber`
+--
+ALTER TABLE `contas_receber`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `id_usuario` (`id_usuario`),
+  ADD KEY `id_categoria` (`id_categoria`),
+  ADD KEY `vencimento` (`vencimento`),
+  ADD KEY `status` (`status`);
 
 --
 -- Índices de tabela `contas_recorrentes`
@@ -380,26 +649,52 @@ ALTER TABLE `faturas_cartao`
   ADD KEY `id_cartao` (`id_cartao`);
 
 --
+-- Índices de tabela `importacoes`
+--
+ALTER TABLE `importacoes`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `id_usuario` (`id_usuario`);
+
+--
 -- Índices de tabela `investimentos`
 --
 ALTER TABLE `investimentos`
   ADD PRIMARY KEY (`id`),
-  ADD KEY `id_usuario` (`id_usuario`);
+  ADD KEY `idx_usuario_tipo` (`id_usuario`,`tipo`),
+  ADD KEY `idx_data_inicio` (`data_inicio`),
+  ADD KEY `idx_status` (`status`);
 
 --
 -- Índices de tabela `lancamentos`
 --
 ALTER TABLE `lancamentos`
   ADD PRIMARY KEY (`id`),
-  ADD KEY `id_categoria` (`id_categoria`),
-  ADD KEY `idx_lancamentos_usuario_data` (`id_usuario`,`data`);
+  ADD KEY `idx_lancamentos_usuario_data` (`id_usuario`,`data`),
+  ADD KEY `idx_usuario_data` (`id_usuario`,`data`),
+  ADD KEY `idx_categoria` (`id_categoria`),
+  ADD KEY `idx_tipo` (`tipo`),
+  ADD KEY `idx_status` (`status`),
+  ADD KEY `idx_data_vencimento` (`data_vencimento`),
+  ADD KEY `idx_moeda` (`moeda`),
+  ADD KEY `idx_usuario_tipo_data` (`id_usuario`,`tipo`,`data`);
+
+--
+-- Índices de tabela `membros_familia`
+--
+ALTER TABLE `membros_familia`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `unico_membro` (`id_proprietario`,`id_membro`),
+  ADD KEY `id_proprietario` (`id_proprietario`),
+  ADD KEY `id_membro` (`id_membro`);
 
 --
 -- Índices de tabela `metas`
 --
 ALTER TABLE `metas`
   ADD PRIMARY KEY (`id`),
-  ADD KEY `id_usuario` (`id_usuario`);
+  ADD KEY `idx_usuario_status` (`id_usuario`,`status`),
+  ADD KEY `idx_data_limite` (`data_limite`),
+  ADD KEY `idx_categoria` (`categoria`);
 
 --
 -- Índices de tabela `metas_financeiras`
@@ -408,6 +703,13 @@ ALTER TABLE `metas_financeiras`
   ADD PRIMARY KEY (`id`),
   ADD KEY `categoria_relacionada` (`categoria_relacionada`),
   ADD KEY `idx_metas_usuario_status` (`id_usuario`,`status`);
+
+--
+-- Índices de tabela `notificacoes`
+--
+ALTER TABLE `notificacoes`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `id_usuario` (`id_usuario`);
 
 --
 -- Índices de tabela `orcamentos`
@@ -419,6 +721,21 @@ ALTER TABLE `orcamentos`
   ADD KEY `idx_orcamentos_usuario_mes` (`id_usuario`,`mes_ano`);
 
 --
+-- Índices de tabela `password_resets`
+--
+ALTER TABLE `password_resets`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `token` (`token`(191)),
+  ADD KEY `email` (`email`(191));
+
+--
+-- Índices de tabela `planejamento_cenarios`
+--
+ALTER TABLE `planejamento_cenarios`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `id_usuario` (`id_usuario`);
+
+--
 -- Índices de tabela `relatorios_personalizados`
 --
 ALTER TABLE `relatorios_personalizados`
@@ -426,18 +743,22 @@ ALTER TABLE `relatorios_personalizados`
   ADD KEY `id_usuario` (`id_usuario`);
 
 --
--- Índices de tabela `password_resets`
+-- Índices de tabela `transferencias`
 --
-ALTER TABLE `password_resets`
+ALTER TABLE `transferencias`
   ADD PRIMARY KEY (`id`),
-  ADD KEY `token` (`token`(191));
+  ADD KEY `id_usuario` (`id_usuario`),
+  ADD KEY `conta_origem` (`conta_origem`),
+  ADD KEY `conta_destino` (`conta_destino`);
 
 --
 -- Índices de tabela `usuarios`
 --
 ALTER TABLE `usuarios`
   ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `email` (`email`);
+  ADD UNIQUE KEY `email` (`email`),
+  ADD KEY `idx_email` (`email`),
+  ADD KEY `idx_moeda_base` (`moeda_base`);
 
 --
 -- AUTO_INCREMENT para tabelas despejadas
@@ -450,10 +771,22 @@ ALTER TABLE `alertas`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
+-- AUTO_INCREMENT de tabela `anexos_lancamentos`
+--
+ALTER TABLE `anexos_lancamentos`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+
+--
 -- AUTO_INCREMENT de tabela `ativos_financeiros`
 --
 ALTER TABLE `ativos_financeiros`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT de tabela `backups`
+--
+ALTER TABLE `backups`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT de tabela `cartoes`
@@ -465,7 +798,31 @@ ALTER TABLE `cartoes`
 -- AUTO_INCREMENT de tabela `categorias`
 --
 ALTER TABLE `categorias`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=19;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=24;
+
+--
+-- AUTO_INCREMENT de tabela `conciliacoes`
+--
+ALTER TABLE `conciliacoes`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT de tabela `contas_bancarias`
+--
+ALTER TABLE `contas_bancarias`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT de tabela `contas_pagar`
+--
+ALTER TABLE `contas_pagar`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT de tabela `contas_receber`
+--
+ALTER TABLE `contas_receber`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT de tabela `contas_recorrentes`
@@ -480,22 +837,34 @@ ALTER TABLE `faturas_cartao`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
+-- AUTO_INCREMENT de tabela `importacoes`
+--
+ALTER TABLE `importacoes`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT de tabela `investimentos`
 --
 ALTER TABLE `investimentos`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT de tabela `lancamentos`
 --
 ALTER TABLE `lancamentos`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+
+--
+-- AUTO_INCREMENT de tabela `membros_familia`
+--
+ALTER TABLE `membros_familia`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT de tabela `metas`
 --
 ALTER TABLE `metas`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT de tabela `metas_financeiras`
@@ -504,9 +873,27 @@ ALTER TABLE `metas_financeiras`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
+-- AUTO_INCREMENT de tabela `notificacoes`
+--
+ALTER TABLE `notificacoes`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT de tabela `orcamentos`
 --
 ALTER TABLE `orcamentos`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+
+--
+-- AUTO_INCREMENT de tabela `password_resets`
+--
+ALTER TABLE `password_resets`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+
+--
+-- AUTO_INCREMENT de tabela `planejamento_cenarios`
+--
+ALTER TABLE `planejamento_cenarios`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
@@ -516,16 +903,16 @@ ALTER TABLE `relatorios_personalizados`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
--- AUTO_INCREMENT de tabela `password_resets`
+-- AUTO_INCREMENT de tabela `transferencias`
 --
-ALTER TABLE `password_resets`
+ALTER TABLE `transferencias`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT de tabela `usuarios`
 --
 ALTER TABLE `usuarios`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- Restrições para tabelas despejadas
@@ -538,10 +925,22 @@ ALTER TABLE `alertas`
   ADD CONSTRAINT `alertas_ibfk_1` FOREIGN KEY (`id_usuario`) REFERENCES `usuarios` (`id`) ON DELETE CASCADE;
 
 --
+-- Restrições para tabelas `anexos_lancamentos`
+--
+ALTER TABLE `anexos_lancamentos`
+  ADD CONSTRAINT `anexos_lancamentos_ibfk_1` FOREIGN KEY (`id_lancamento`) REFERENCES `lancamentos` (`id`) ON DELETE CASCADE;
+
+--
 -- Restrições para tabelas `ativos_financeiros`
 --
 ALTER TABLE `ativos_financeiros`
   ADD CONSTRAINT `ativos_financeiros_ibfk_1` FOREIGN KEY (`id_usuario`) REFERENCES `usuarios` (`id`) ON DELETE CASCADE;
+
+--
+-- Restrições para tabelas `backups`
+--
+ALTER TABLE `backups`
+  ADD CONSTRAINT `backups_ibfk_1` FOREIGN KEY (`id_usuario`) REFERENCES `usuarios` (`id`) ON DELETE CASCADE;
 
 --
 -- Restrições para tabelas `cartoes`
@@ -550,48 +949,31 @@ ALTER TABLE `cartoes`
   ADD CONSTRAINT `cartoes_ibfk_1` FOREIGN KEY (`id_usuario`) REFERENCES `usuarios` (`id`) ON DELETE CASCADE;
 
 --
--- Tabela de contas bancárias
+-- Restrições para tabelas `conciliacoes`
 --
-CREATE TABLE IF NOT EXISTS `contas_bancarias` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `id_usuario` int(11) NOT NULL,
-  `nome` varchar(100) NOT NULL,
-  `tipo` varchar(50) NOT NULL,
-  `banco` varchar(100) DEFAULT NULL,
-  `agencia` varchar(20) DEFAULT NULL,
-  `numero_conta` varchar(30) DEFAULT NULL,
-  `saldo_inicial` decimal(15,2) NOT NULL DEFAULT 0.00,
-  `saldo_atual` decimal(15,2) NOT NULL DEFAULT 0.00,
-  `moeda` varchar(3) NOT NULL DEFAULT 'BRL',
-  `status` enum('ativa','inativa') DEFAULT 'ativa',
-  `cor` varchar(7) DEFAULT '#6a0dad',
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-  PRIMARY KEY (`id`),
-  KEY `id_usuario` (`id_usuario`),
-  CONSTRAINT `contas_bancarias_ibfk_1` FOREIGN KEY (`id_usuario`) REFERENCES `usuarios` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+ALTER TABLE `conciliacoes`
+  ADD CONSTRAINT `conciliacoes_ibfk_1` FOREIGN KEY (`id_usuario`) REFERENCES `usuarios` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `conciliacoes_ibfk_2` FOREIGN KEY (`id_conta`) REFERENCES `contas_bancarias` (`id`) ON DELETE CASCADE;
 
 --
--- Tabela de transferências entre contas
+-- Restrições para tabelas `contas_bancarias`
 --
-CREATE TABLE IF NOT EXISTS `transferencias` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `id_usuario` int(11) NOT NULL,
-  `conta_origem` int(11) NOT NULL,
-  `conta_destino` int(11) NOT NULL,
-  `valor` decimal(15,2) NOT NULL,
-  `descricao` varchar(255) DEFAULT NULL,
-  `data_transferencia` date NOT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  PRIMARY KEY (`id`),
-  KEY `id_usuario` (`id_usuario`),
-  KEY `conta_origem` (`conta_origem`),
-  KEY `conta_destino` (`conta_destino`),
-  CONSTRAINT `transferencias_ibfk_1` FOREIGN KEY (`id_usuario`) REFERENCES `usuarios` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `transferencias_ibfk_2` FOREIGN KEY (`conta_origem`) REFERENCES `contas_bancarias` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `transferencias_ibfk_3` FOREIGN KEY (`conta_destino`) REFERENCES `contas_bancarias` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+ALTER TABLE `contas_bancarias`
+  ADD CONSTRAINT `contas_bancarias_ibfk_1` FOREIGN KEY (`id_usuario`) REFERENCES `usuarios` (`id`) ON DELETE CASCADE;
+
+--
+-- Restrições para tabelas `contas_pagar`
+--
+ALTER TABLE `contas_pagar`
+  ADD CONSTRAINT `contas_pagar_ibfk_1` FOREIGN KEY (`id_usuario`) REFERENCES `usuarios` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `contas_pagar_ibfk_2` FOREIGN KEY (`id_categoria`) REFERENCES `categorias` (`id`) ON DELETE SET NULL;
+
+--
+-- Restrições para tabelas `contas_receber`
+--
+ALTER TABLE `contas_receber`
+  ADD CONSTRAINT `contas_receber_ibfk_1` FOREIGN KEY (`id_usuario`) REFERENCES `usuarios` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `contas_receber_ibfk_2` FOREIGN KEY (`id_categoria`) REFERENCES `categorias` (`id`) ON DELETE SET NULL;
 
 --
 -- Restrições para tabelas `contas_recorrentes`
@@ -607,6 +989,12 @@ ALTER TABLE `faturas_cartao`
   ADD CONSTRAINT `faturas_cartao_ibfk_1` FOREIGN KEY (`id_cartao`) REFERENCES `cartoes` (`id`) ON DELETE CASCADE;
 
 --
+-- Restrições para tabelas `importacoes`
+--
+ALTER TABLE `importacoes`
+  ADD CONSTRAINT `importacoes_ibfk_1` FOREIGN KEY (`id_usuario`) REFERENCES `usuarios` (`id`) ON DELETE CASCADE;
+
+--
 -- Restrições para tabelas `investimentos`
 --
 ALTER TABLE `investimentos`
@@ -618,6 +1006,13 @@ ALTER TABLE `investimentos`
 ALTER TABLE `lancamentos`
   ADD CONSTRAINT `lancamentos_ibfk_1` FOREIGN KEY (`id_usuario`) REFERENCES `usuarios` (`id`) ON DELETE CASCADE,
   ADD CONSTRAINT `lancamentos_ibfk_2` FOREIGN KEY (`id_categoria`) REFERENCES `categorias` (`id`) ON DELETE SET NULL;
+
+--
+-- Restrições para tabelas `membros_familia`
+--
+ALTER TABLE `membros_familia`
+  ADD CONSTRAINT `membros_familia_ibfk_1` FOREIGN KEY (`id_proprietario`) REFERENCES `usuarios` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `membros_familia_ibfk_2` FOREIGN KEY (`id_membro`) REFERENCES `usuarios` (`id`) ON DELETE CASCADE;
 
 --
 -- Restrições para tabelas `metas`
@@ -633,6 +1028,12 @@ ALTER TABLE `metas_financeiras`
   ADD CONSTRAINT `metas_financeiras_ibfk_2` FOREIGN KEY (`categoria_relacionada`) REFERENCES `categorias` (`id`) ON DELETE SET NULL;
 
 --
+-- Restrições para tabelas `notificacoes`
+--
+ALTER TABLE `notificacoes`
+  ADD CONSTRAINT `notificacoes_ibfk_1` FOREIGN KEY (`id_usuario`) REFERENCES `usuarios` (`id`) ON DELETE CASCADE;
+
+--
 -- Restrições para tabelas `orcamentos`
 --
 ALTER TABLE `orcamentos`
@@ -640,195 +1041,24 @@ ALTER TABLE `orcamentos`
   ADD CONSTRAINT `orcamentos_ibfk_2` FOREIGN KEY (`id_categoria`) REFERENCES `categorias` (`id`) ON DELETE CASCADE;
 
 --
+-- Restrições para tabelas `planejamento_cenarios`
+--
+ALTER TABLE `planejamento_cenarios`
+  ADD CONSTRAINT `planejamento_cenarios_ibfk_1` FOREIGN KEY (`id_usuario`) REFERENCES `usuarios` (`id`) ON DELETE CASCADE;
+
+--
 -- Restrições para tabelas `relatorios_personalizados`
 --
 ALTER TABLE `relatorios_personalizados`
   ADD CONSTRAINT `relatorios_personalizados_ibfk_1` FOREIGN KEY (`id_usuario`) REFERENCES `usuarios` (`id`) ON DELETE CASCADE;
 
--- --------------------------------------------------------
-
 --
--- Estrutura para tabela `planejamento_cenarios`
+-- Restrições para tabelas `transferencias`
 --
-
-CREATE TABLE `planejamento_cenarios` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `id_usuario` int(11) NOT NULL,
-  `nome` varchar(100) NOT NULL,
-  `descricao` text DEFAULT NULL,
-  `tipo` enum('receita','despesa','investimento','divida') NOT NULL,
-  `valor_base` decimal(15,2) NOT NULL,
-  `percentual_variacao` decimal(5,2) NOT NULL,
-  `resultado_calculado` decimal(15,2) NOT NULL,
-  `data_criacao` datetime DEFAULT current_timestamp(),
-  PRIMARY KEY (`id`),
-  KEY `id_usuario` (`id_usuario`),
-  CONSTRAINT `planejamento_cenarios_ibfk_1` FOREIGN KEY (`id_usuario`) REFERENCES `usuarios` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- --------------------------------------------------------
-
---
--- Estrutura para tabela `importacoes`
---
-
-CREATE TABLE `importacoes` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `id_usuario` int(11) NOT NULL,
-  `nome_arquivo` varchar(255) NOT NULL,
-  `tipo_arquivo` enum('ofx','csv') NOT NULL,
-  `total_lancamentos` int(11) DEFAULT 0,
-  `data_importacao` datetime DEFAULT current_timestamp(),
-  PRIMARY KEY (`id`),
-  KEY `id_usuario` (`id_usuario`),
-  CONSTRAINT `importacoes_ibfk_1` FOREIGN KEY (`id_usuario`) REFERENCES `usuarios` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- --------------------------------------------------------
-
---
--- Estrutura para tabela `contas_pagar`
---
-
-CREATE TABLE `contas_pagar` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `id_usuario` int(11) NOT NULL,
-  `descricao` varchar(200) NOT NULL,
-  `valor` decimal(15,2) NOT NULL,
-  `vencimento` date NOT NULL,
-  `data_pagamento` date DEFAULT NULL,
-  `status` enum('pendente','pago','atrasado') DEFAULT 'pendente',
-  `id_categoria` int(11) DEFAULT NULL,
-  `fornecedor` varchar(100) DEFAULT NULL,
-  `num_documento` varchar(50) DEFAULT NULL,
-  `observacoes` text DEFAULT NULL,
-  `data_criacao` datetime DEFAULT current_timestamp(),
-  PRIMARY KEY (`id`),
-  KEY `id_usuario` (`id_usuario`),
-  KEY `id_categoria` (`id_categoria`),
-  KEY `vencimento` (`vencimento`),
-  KEY `status` (`status`),
-  CONSTRAINT `contas_pagar_ibfk_1` FOREIGN KEY (`id_usuario`) REFERENCES `usuarios` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `contas_pagar_ibfk_2` FOREIGN KEY (`id_categoria`) REFERENCES `categorias` (`id`) ON DELETE SET NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- --------------------------------------------------------
-
---
--- Estrutura para tabela `contas_receber`
---
-
-CREATE TABLE `contas_receber` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `id_usuario` int(11) NOT NULL,
-  `descricao` varchar(200) NOT NULL,
-  `valor` decimal(15,2) NOT NULL,
-  `vencimento` date NOT NULL,
-  `data_recebimento` date DEFAULT NULL,
-  `status` enum('pendente','recebido','atrasado') DEFAULT 'pendente',
-  `id_categoria` int(11) DEFAULT NULL,
-  `cliente` varchar(100) DEFAULT NULL,
-  `num_documento` varchar(50) DEFAULT NULL,
-  `observacoes` text DEFAULT NULL,
-  `data_criacao` datetime DEFAULT current_timestamp(),
-  PRIMARY KEY (`id`),
-  KEY `id_usuario` (`id_usuario`),
-  KEY `id_categoria` (`id_categoria`),
-  KEY `vencimento` (`vencimento`),
-  KEY `status` (`status`),
-  CONSTRAINT `contas_receber_ibfk_1` FOREIGN KEY (`id_usuario`) REFERENCES `usuarios` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `contas_receber_ibfk_2` FOREIGN KEY (`id_categoria`) REFERENCES `categorias` (`id`) ON DELETE SET NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- --------------------------------------------------------
-
---
--- Estrutura para tabela `conciliacoes`
---
-
-CREATE TABLE `conciliacoes` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `id_usuario` int(11) NOT NULL,
-  `id_conta` int(11) NOT NULL,
-  `data_conciliacao` date NOT NULL,
-  `saldo_sistema` decimal(15,2) NOT NULL,
-  `saldo_real` decimal(15,2) NOT NULL,
-  `divergencia` decimal(15,2) GENERATED ALWAYS AS (ABS(`saldo_real` - `saldo_sistema`)) STORED,
-  `status` enum('conciliado','divergente','pendente') DEFAULT 'pendente',
-  `observacoes` text DEFAULT NULL,
-  `data_registro` datetime DEFAULT current_timestamp(),
-  PRIMARY KEY (`id`),
-  KEY `id_usuario` (`id_usuario`),
-  KEY `id_conta` (`id_conta`),
-  KEY `data_conciliacao` (`data_conciliacao`),
-  CONSTRAINT `conciliacoes_ibfk_1` FOREIGN KEY (`id_usuario`) REFERENCES `usuarios` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `conciliacoes_ibfk_2` FOREIGN KEY (`id_conta`) REFERENCES `contas_bancarias` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- --------------------------------------------------------
-
---
--- Estrutura para tabela `backups`
---
-
-CREATE TABLE `backups` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `id_usuario` int(11) NOT NULL,
-  `nome_arquivo` varchar(200) NOT NULL,
-  `tamanho_bytes` bigint(20) DEFAULT NULL,
-  `data_backup` datetime DEFAULT current_timestamp(),
-  `tipo` enum('completo','parcial') DEFAULT 'completo',
-  `status` enum('sucesso','erro') DEFAULT 'sucesso',
-  `observacoes` text DEFAULT NULL,
-  PRIMARY KEY (`id`),
-  KEY `id_usuario` (`id_usuario`),
-  KEY `data_backup` (`data_backup`),
-  CONSTRAINT `backups_ibfk_1` FOREIGN KEY (`id_usuario`) REFERENCES `usuarios` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- --------------------------------------------------------
-
---
--- Estrutura para tabela `membros_familia`
---
-
-CREATE TABLE `membros_familia` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `id_proprietario` int(11) NOT NULL,
-  `id_membro` int(11) NOT NULL,
-  `permissoes` enum('visualizacao','edicao','total') DEFAULT 'visualizacao',
-  `status` enum('pendente','ativo','recusado','inativo') DEFAULT 'pendente',
-  `data_convite` datetime DEFAULT current_timestamp(),
-  `data_aceite` datetime DEFAULT NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `unico_membro` (`id_proprietario`,`id_membro`),
-  KEY `id_proprietario` (`id_proprietario`),
-  KEY `id_membro` (`id_membro`),
-  CONSTRAINT `membros_familia_ibfk_1` FOREIGN KEY (`id_proprietario`) REFERENCES `usuarios` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `membros_familia_ibfk_2` FOREIGN KEY (`id_membro`) REFERENCES `usuarios` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- --------------------------------------------------------
-
---
--- Estrutura para tabela `anexos_lancamentos`
---
-
-CREATE TABLE `anexos_lancamentos` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `id_lancamento` int(11) NOT NULL,
-  `nome_arquivo` varchar(255) NOT NULL,
-  `nome_original` varchar(255) NOT NULL,
-  `caminho_arquivo` varchar(500) NOT NULL,
-  `tipo_arquivo` varchar(10) NOT NULL,
-  `tamanho` bigint(20) NOT NULL,
-  `descricao` text DEFAULT NULL,
-  `data_upload` datetime DEFAULT current_timestamp(),
-  PRIMARY KEY (`id`),
-  KEY `id_lancamento` (`id_lancamento`),
-  CONSTRAINT `anexos_lancamentos_ibfk_1` FOREIGN KEY (`id_lancamento`) REFERENCES `lancamentos` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
+ALTER TABLE `transferencias`
+  ADD CONSTRAINT `transferencias_ibfk_1` FOREIGN KEY (`id_usuario`) REFERENCES `usuarios` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `transferencias_ibfk_2` FOREIGN KEY (`conta_origem`) REFERENCES `contas_bancarias` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `transferencias_ibfk_3` FOREIGN KEY (`conta_destino`) REFERENCES `contas_bancarias` (`id`) ON DELETE CASCADE;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
