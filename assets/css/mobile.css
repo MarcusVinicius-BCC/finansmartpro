@@ -1,22 +1,3 @@
-/**
- * FinanSmart Pro - Mobile Responsive CSS
- * Otimizações para dispositivos móveis (320px - 991px)
- */
-
-/* =================================================================
-   BREAKPOINTS
-   ================================================================= */
-/* 
-   xs: 0-575px    (mobile portrait)
-   sm: 576-767px  (mobile landscape) 
-   md: 768-991px  (tablets)
-   lg: 992px+     (desktop)
-*/
-
-/* =================================================================
-   SIDEBAR RESPONSIVO
-   ================================================================= */
-/* Sidebar agora é controlada por sidebar.css - estilos unificados para desktop e mobile */
 
 @media (max-width: 991px) {
 
@@ -32,9 +13,7 @@
     }
 }
 
-/* =================================================================
-   TABELAS RESPONSIVAS
-   ================================================================= */
+
 @media (max-width: 767px) {
 
     /* Scroll horizontal em tabelas */
